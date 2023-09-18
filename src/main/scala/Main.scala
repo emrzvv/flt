@@ -16,10 +16,19 @@ object Main {
         |f(g(x, y)) = g(h(y), x)
         |""".stripMargin
 
-    val (trs, vars) = Parser.parse(test1)
+    val test3 =
+      """
+        |variables = x
+        |f(g(x)) = g(f(x))
+        |""".stripMargin
+
+    val (trs, vars) = Parser.parse(test3)
     println(trs)
+
+//    trs.rules.foreach(r => println(Unfolder.unfold(r.left) + " -> " + Unfolder.unfold(r.right)))
 
     trs.rules.map(rule => InequalitiesMaker.make(Unfolder.unfold(rule.left), Unfolder.unfold(rule.right)))
       .foreach(println)
+    println(InequalitiesMaker.combineWithOr(InequalitiesMaker.strictDescending.toVector))
   }
 }
