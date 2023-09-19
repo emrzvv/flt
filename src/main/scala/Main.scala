@@ -60,6 +60,6 @@ object Main {
 
     command.run(io).exitValue()
     println(result)
-//    s"rm ./$filename" !!
+    s"rm ./$filename" !!
   }
 }
