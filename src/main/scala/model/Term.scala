@@ -30,9 +30,6 @@ object Unfolder {
     def loop(current: Term, coefficients: Vector[String], freeTerms: Vector[String]): Unit = {
       current match {
         case constr@Constructor(name, args, arity) => {
-          //          if (arity == 0) {
-          //            ??? // TODO дописать
-          //          }
           allConstructors += constr.copy(args = Vector.empty)
           val freeTerm = s"${name}_${arity}"
           freeTermsTotal += (freeTerms :+ freeTerm)
