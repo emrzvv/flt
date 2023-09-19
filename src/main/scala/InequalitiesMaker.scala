@@ -39,6 +39,7 @@ object InequalitiesMaker {
   }
 
   private def combineProductsToExpression(sum: Vector[Vector[String]]): String = {
+    println(sum)
     if (sum.isEmpty) "0"
     else if (sum.size == 1) sum.map(s =>
       if (s.size == 1) s.mkString("")
@@ -82,7 +83,7 @@ object InequalitiesMaker {
         val l = left.variablesCoefficientsMapping(key)
         val leftSmtExpr = combineProductsToExpression(l)
         strictDescending += s"(> $leftSmtExpr 0)"
-        s"(>= $leftSmtExpr)"
+        s"(>= $leftSmtExpr 0)"
       }.toVector
     }
 
