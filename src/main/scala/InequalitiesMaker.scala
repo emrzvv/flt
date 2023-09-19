@@ -72,7 +72,7 @@ object InequalitiesMaker {
         val r = right.variablesCoefficientsMapping(key)
         val rightSmtExpr = combineProductsToExpression(r)
         strictDescending += s"(> 0 $rightSmtExpr)"
-        s"(>= 0 $rightSmtExpr"
+        s"(>= 0 $rightSmtExpr)"
       }.toVector
     }
 
