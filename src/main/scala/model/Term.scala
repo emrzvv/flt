@@ -1,6 +1,7 @@
 package model
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 sealed trait Term {
   def name: String
@@ -21,10 +22,10 @@ case class UnfoldedExpression(variablesCoefficientsMapping: Map[String, Vector[V
 object Term {}
 
 object Unfolder {
+  val allConstructors: mutable.Set[Constructor] = mutable.Set.empty
   def unfold(root: Term): UnfoldedExpression = {
     val varCoefficients: mutable.Map[String, Vector[Vector[String]]] = mutable.Map.empty
     val freeTermsTotal: mutable.ArrayBuffer[Vector[String]] = mutable.ArrayBuffer.empty
-    val sb: StringBuilder = new StringBuilder() // sb ++= (declare-fun f_0 () Int)
 
     def loop(current: Term, coefficients: Vector[String], freeTerms: Vector[String]): Unit = {
       current match {
@@ -32,7 +33,7 @@ object Unfolder {
           //          if (arity == 0) {
           //            ??? // TODO дописать
           //          }
-
+          allConstructors += constr.copy(args = Vector.empty)
           val freeTerm = s"${name}_${arity}"
           freeTermsTotal += (freeTerms :+ freeTerm)
           args.zipWithIndex.foreach { v =>

@@ -80,7 +80,7 @@ object Parser {
       else if (variables.contains(toIdentify)) {
         Variable(toIdentify)
       }
-      else { // suppose unknown term is a constructor. need to find its' arity
+      else {
         parseTerm(rawTerm, constructorsArity + (toIdentify -> getConstructorArity(rawTerm.trim)))
       }
     }
@@ -94,19 +94,19 @@ object Parser {
       }
     }
 
-    def createTrs(rawTrs: List[String], constructorsArity: Map[String, Int])(trs: Trs): Trs = {
-      rawTrs match {
-        case Nil => trs
-        case headRule :: tailRules =>
-          val splittedRawRule = customBraceStrip(headRule).split("""\s*:?:?=\s""")
-          ???
-      }
-    }
+//    def createTrs(rawTrs: List[String], constructorsArity: Map[String, Int])(trs: Trs): Trs = {
+//      rawTrs match {
+//        case Nil => trs
+//        case headRule :: tailRules =>
+//          val splittedRawRule = customBraceStrip(headRule).split("""\s*:?:?=\s""")
+//          ???
+//      }
+//    }
 
     new Trs(rawTrs.map(rawRule => {
-      val splittedRawRule = customBraceStrip(rawRule).split("""\s*:?:?=\s""")
+      val splittedRawRule = customBraceStrip(rawRule).split("""\s*:?:?[=|[\->]]\s""")
       Rule(parseTerm(splittedRawRule(0)), parseTerm(splittedRawRule(1)))
-    }).toVector) // нужно оптимизировать, сохраняя найденную арность конструкторов. как вариант, просто сделать мутабельную мапу constructorsArity.
+    }).toVector) // TODO нужно оптимизировать, сохраняя найденную арность конструкторов. как вариант, просто сделать мутабельную мапу constructorsArity.
   }
 
   def parse(rawInput: String): (Trs, Set[String]) = {
