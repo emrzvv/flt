@@ -39,7 +39,6 @@ object InequalitiesMaker {
   }
 
   private def combineProductsToExpression(sum: Vector[Vector[String]]): String = {
-    println(sum)
     if (sum.isEmpty) "0"
     else if (sum.size == 1) sum.map(s =>
       if (s.size == 1) s.mkString("")
