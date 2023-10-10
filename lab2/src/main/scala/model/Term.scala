@@ -18,4 +18,22 @@ object Term {
     def prettyTree(term: Term): String = {
         pprint.tokenize(term).mkString
     }
+
+    def applySSNF(term: Term): Term = {
+        term match {
+            case s@Symbol(_) => s
+            case Or(left, right) => Or(applySSNF(left), applySSNF(right))
+            case Concat(left, right) => Concat(applySSNF(left), applySSNF(right))
+            case Repeat(term) => Repeat(applySS(term))
+        }
+    }
+
+    private def applySS(term: Term): Term = {
+        term match {
+            case s@Symbol(_) => s
+            case Or(left, right) => Or(applySS(left), applySS(right))
+            case Concat(left, right) => Concat(applySSNF(left), applySSNF(right))
+            case Repeat(term) => applySS(term)
+        }
+    }
 }
