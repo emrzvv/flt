@@ -58,11 +58,11 @@ object Term {
     private def swapBinary[T <: Binary](root: T): Unit = {
         (root.left, root.right) match {
             case (left: T, right: T) =>
-                val oldLeftOr = left
+                val oldRootLeft = left
                 root.left = right
                 val newRootRight = root.left.asInstanceOf[T].right
                 root.left.asInstanceOf[T].right = root.left.asInstanceOf[T].left // swap
-                root.left.asInstanceOf[T].left = oldLeftOr
+                root.left.asInstanceOf[T].left = oldRootLeft
                 root.right = newRootRight
                 if (newRootRight.isBinary) transformToLeftAssociativity(root)
             case (left: Term, right: T) =>
