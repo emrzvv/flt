@@ -90,10 +90,6 @@ object Term {
         }
     }
 
-    def removeDuplicateOr(): Term = ??? // TODO: проходимся по левому поддереву, пока не закончится OR, собираем правые аргументы, удаляем
-
-    def sortLexicographicOr(): Term = ??? // TODO: для этого надо переопределить toString адекватно, чтобы сравнивать аргументы
-
     def normalizeAlternatives(term: Term, isLeftChild: Boolean, parent: Option[Term] = None): Unit = { // process only when tree is left associative
         @tailrec
         def getAlternativeSubtree(current: Term, subtree: Vector[Or] = Vector.empty): Vector[Or] = {
@@ -119,9 +115,9 @@ object Term {
             case or@Or(left, right, isACIProcessed) if !isACIProcessed =>
                 val args = getAlternativeSubtreeArguments(or)
                 val processedArgs = args.distinctBy(_.toString).sortBy(_.toString) // TODO: узнать ещё раз, как сортировать лексикографически
-                println(processedArgs)
+                println(processedArgs) // TODO: remove
                 val formedAlternatives = createAlternativesWithArguments(processedArgs)
-                println(Term.prettyTree(formedAlternatives))
+                println(Term.prettyTree(formedAlternatives)) // TODO: remove
                 parent.foreach {
                     case b: Binary => if (isLeftChild) b.left = formedAlternatives else b.right = formedAlternatives
                     case r@Repeat(_) => r.term = formedAlternatives
