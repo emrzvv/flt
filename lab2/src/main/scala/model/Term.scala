@@ -1,10 +1,9 @@
 package model
 
-import java.util.UUID
 import scala.annotation.tailrec
 
 
-sealed trait Term {
+sealed trait Term { // TODO: описать toString для всех кейс-классов
     val isBinary: Boolean
 }
 sealed trait Binary extends Term {
@@ -110,7 +109,7 @@ object Term {
             case term@_ => args :+ term
         }
 
-        def createAlternativesWithArguments(args: Vector[Term], alternatives: Vector[Or] = Vector.empty): Or = {
+        def createAlternativesWithArguments(args: Vector[Term]): Or = {
             if (args.size == 1) throw new Exception("incorrect alternatives input")
             else if (args.size == 2) Or(args(0), args(1), isACIProcessed = true)
             else Or(createAlternativesWithArguments(args.tail), args.head, isACIProcessed = true)
