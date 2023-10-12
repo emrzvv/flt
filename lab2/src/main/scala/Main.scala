@@ -1,4 +1,4 @@
-import model.Term
+import model.{RegexTree, Term}
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -22,19 +22,21 @@ object Main {
       case Some(result) => {
         println(Term.prettyTree(result))
 //        println(Term.applySSNF(result))
-        val ssnfApplied = Term.applySSNF(result)
+        val tree = RegexTree(Term.applySSNF(result))
 
-        Term.transformToLeftAssociativity(ssnfApplied)
+        Term.transformToLeftAssociativity(tree.root)
         println("APPLYING LA")
-        println(Term.prettyTree(ssnfApplied))
-        println("FINISHED LA")
-        Term.normalizeAlternatives(ssnfApplied, isLeftChild = false)
-        println("NORMALIZING ALT")
-        println(Term.prettyTree(ssnfApplied))
+        println(Term.prettyTree(tree.root))
 
-        Term.applyDstr(ssnfApplied, isLeftChild = false)
+        Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = Some(tree))
+        println("NORMALIZING ALT")
+        println(Term.prettyTree(tree.root))
+
+        Term.applyDstr(tree.root, isLeftChild = false, parent = Some(tree))
         println("APPLYING DSTR")
-        println(Term.prettyTree(ssnfApplied))
+        println(Term.prettyTree(tree.root))
+
+        println(tree.toRegex)
       }
       case None => println("didn't parse lol")
     }

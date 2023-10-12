@@ -5,6 +5,7 @@ import scala.annotation.tailrec
 
 sealed trait Term { // TODO: описать toString для всех кейс-классов
     val isBinary: Boolean
+    def toRegex: String
 }
 sealed trait Binary extends Term {
     var left: Term
@@ -14,23 +15,37 @@ case class Symbol(value: Char) extends Term { // a
     override def toString: String = value.toString
 
     override val isBinary: Boolean = false
+
+    override def toRegex: String = value.toString
 }
 case class Or(var left: Term, var right: Term, var isACIProcessed: Boolean = false) extends Term with Binary { // a|b
 //    override def toString: String = (left, right) match {
 //        case (Symbol(l), Symbol(r)) => s"$l|$r"
 //    }
     override val isBinary: Boolean = true
+
+    override def toRegex: String = s"(${left.toRegex}|${right.toRegex})"
 }
 case class Concat(var left: Term, var right: Term) extends Term with Binary { // ab
     override val isBinary: Boolean = true
+
+    override def toRegex: String = s"(${left.toRegex}${right.toRegex})"
 }
 case class Repeat(var term: Term) extends Term { // a*
     override val isBinary: Boolean = false
+
+    override def toRegex: String = s"(${term.toRegex})*"
 }
 // made it mutable to rebuild binary tree the most easiest way
+case class RegexTree(var root: Term) extends Term {
+    override val isBinary: Boolean = false
 
+    override def toRegex: String = root.toRegex
+}
 case object Eps extends Term {
     override val isBinary: Boolean = false
+
+    override def toRegex: String = ""
 }
 
 object Term {
@@ -121,10 +136,11 @@ object Term {
                 val processedArgs = args.distinctBy(_.toString).sortBy(_.toString) // TODO: узнать ещё раз, как сортировать лексикографически
 //                println(s"OR ARGS: $processedArgs") // TODO: remove
                 val formedAlternatives = createAlternativesWithArguments(processedArgs)
-                println(Term.prettyTree(formedAlternatives)) // TODO: remove
+                //println(Term.prettyTree(formedAlternatives)) // TODO: remove
                 parent.foreach {
                     case b: Binary => if (isLeftChild) b.left = formedAlternatives else b.right = formedAlternatives
                     case r@Repeat(_) => r.term = formedAlternatives
+                    case t@RegexTree(_) => t.root = formedAlternatives
                 }
                 normalizeAlternatives(formedAlternatives.left, isLeftChild = true, parent = Some(formedAlternatives))
                 normalizeAlternatives(formedAlternatives.right, isLeftChild = false, parent = Some(formedAlternatives))
@@ -147,16 +163,18 @@ object Term {
                 (left, right) match { // ab|ac = a(b|c); ba|ca = (b|c)a
                     case (Concat(a, b), Concat(c, d)) =>
                         if (a.toString == c.toString) {
-                            val createdConcat = Concat(a, Or(b, d))
+                            val createdConcat = Concat(a, Or(b, d, isACIProcessed = true))
                             parent.foreach { // TODO: вынести в отдельную функцию replaceParentChild(child: Term)
                                 case b: Binary => if (isLeftChild) b.left = createdConcat else b.right = createdConcat
                                 case r@Repeat(_) => r.term = createdConcat
+                                case t@RegexTree(_) => t.root = createdConcat
                             }
                         } else if (b.toString == d.toString) {
-                            val createdConcat = Concat(Or(a, c), d)
+                            val createdConcat = Concat(Or(a, c, isACIProcessed = true), d)
                             parent.foreach { // TODO: вынести в отдельную функцию replaceParentChild(child: Term)
                                 case b: Binary => if (isLeftChild) b.left = createdConcat else b.right = createdConcat
                                 case r@Repeat(_) => r.term = createdConcat
+                                case t@RegexTree(_) => t.root = createdConcat
                             }
                         } else ()
                     case _ => ()
