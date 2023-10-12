@@ -13,17 +13,27 @@ object Main {
     val init9 = "c*|d*"
     val init10 = "(k|f)|a|b|(c|d|(e|f))"
     val init11 = "(gh)ab(cd(ef))"
-    val res = RegexParser.apply(init)
+    val init12 = "xz|xy"
+    val init13 = "yx|zx"
+    val res = RegexParser.apply(init12)
     println(res.map(_.toString))
 
     res match {
       case Some(result) => {
         println(Term.prettyTree(result))
-        println(Term.applySSNF(result))
+//        println(Term.applySSNF(result))
         val ssnfApplied = Term.applySSNF(result)
+
         Term.transformToLeftAssociativity(ssnfApplied)
-//        println(Term.prettyTree(ssnfApplied))
+        println("APPLYING LA")
+        println(Term.prettyTree(ssnfApplied))
+        println("FINISHED LA")
         Term.normalizeAlternatives(ssnfApplied, isLeftChild = false)
+        println("NORMALIZING ALT")
+        println(Term.prettyTree(ssnfApplied))
+
+        Term.applyDstr(ssnfApplied, isLeftChild = false)
+        println("APPLYING DSTR")
         println(Term.prettyTree(ssnfApplied))
       }
       case None => println("didn't parse lol")

@@ -58,7 +58,7 @@ object Term {
 
     private def swapBinary[T <: Binary](root: T): Unit = {
         (root.left, root.right) match {
-            case (left: T, right: T) =>
+            case (left: T, right: T) if root.getClass.isInstance(left.getClass) && root.getClass.isInstance(right.getClass) =>
                 val oldRootLeft = left
                 root.left = right
                 val newRootRight = root.left.asInstanceOf[T].right
@@ -66,7 +66,7 @@ object Term {
                 root.left.asInstanceOf[T].left = oldRootLeft
                 root.right = newRootRight
                 if (newRootRight.isBinary) transformToLeftAssociativity(root)
-            case (left: Term, right: T) =>
+            case (left: Term, right: T) if root.getClass.isInstance(right.getClass) =>
                 val oldLeftTerm = left
                 root.left = root.right
                 root.right = oldLeftTerm
@@ -74,14 +74,16 @@ object Term {
         }
     }
 
+
+
     def transformToLeftAssociativity(toTransform: Term): Unit = {
         toTransform match {
             case or@Or(left, right, _) =>
-                swapBinary(or)
+                swapBinary[Or](or)
                 transformToLeftAssociativity(left)
                 transformToLeftAssociativity(right)
             case concat@Concat(left, right) =>
-                swapBinary(concat)
+                swapBinary[Concat](concat)
                 transformToLeftAssociativity(left)
                 transformToLeftAssociativity(right)
             case repeat@Repeat(term) =>
@@ -101,7 +103,8 @@ object Term {
 
         @tailrec
         def getAlternativeSubtreeArguments(current: Term, args: Vector[Term] = Vector.empty): Vector[Term] = current match {
-            case or@Or(left, right, _) => getAlternativeSubtreeArguments(left, args :+ right)
+            case or@Or(left: Or, right, _) => getAlternativeSubtreeArguments(left, args :+ right)
+            case or@Or(left, right, _) => args :+ right :+ left
             case term@_ => args :+ term
         }
 
@@ -114,8 +117,9 @@ object Term {
         term match {
             case or@Or(left, right, isACIProcessed) if !isACIProcessed =>
                 val args = getAlternativeSubtreeArguments(or)
+//                println(s"UNPROCESSED OR ARGS: $args")
                 val processedArgs = args.distinctBy(_.toString).sortBy(_.toString) // TODO: узнать ещё раз, как сортировать лексикографически
-                println(processedArgs) // TODO: remove
+//                println(s"OR ARGS: $processedArgs") // TODO: remove
                 val formedAlternatives = createAlternativesWithArguments(processedArgs)
                 println(Term.prettyTree(formedAlternatives)) // TODO: remove
                 parent.foreach {
@@ -132,6 +136,36 @@ object Term {
                 normalizeAlternatives(right, isLeftChild = false, parent = Some(concat))
             case repeat@Repeat(inner) => normalizeAlternatives(inner, isLeftChild = false, parent = Some(repeat))
             case _ => ()
+        }
+    }
+
+    def applyDstr(term: Term, isLeftChild: Boolean, parent: Option[Term] = None): Unit = {
+        term match {
+            case or@Or(left, right, _) =>
+                applyDstr(left, isLeftChild = true, parent = Some(or))
+                applyDstr(right, isLeftChild = false, parent = Some(or))
+                (left, right) match { // ab|ac = a(b|c); ba|ca = (b|c)a
+                    case (Concat(a, b), Concat(c, d)) =>
+                        if (a.toString == c.toString) {
+                            val createdConcat = Concat(a, Or(b, d))
+                            parent.foreach { // TODO: вынести в отдельную функцию replaceParentChild(child: Term)
+                                case b: Binary => if (isLeftChild) b.left = createdConcat else b.right = createdConcat
+                                case r@Repeat(_) => r.term = createdConcat
+                            }
+                        } else if (b.toString == d.toString) {
+                            val createdConcat = Concat(Or(a, c), d)
+                            parent.foreach { // TODO: вынести в отдельную функцию replaceParentChild(child: Term)
+                                case b: Binary => if (isLeftChild) b.left = createdConcat else b.right = createdConcat
+                                case r@Repeat(_) => r.term = createdConcat
+                            }
+                        } else ()
+                    case _ => ()
+                }
+            case concat@Concat(left, right) =>
+                applyDstr(left, isLeftChild = true, Some(concat))
+                applyDstr(right, isLeftChild = false, Some(concat))
+            case repeat@Repeat(term) => applyDstr(term, isLeftChild = false, Some(repeat))
+            case Symbol(_) => ()
         }
     }
 }
