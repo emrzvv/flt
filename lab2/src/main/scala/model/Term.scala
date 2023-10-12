@@ -1,9 +1,11 @@
 package model
 
-import scala.annotation.tailrec
+import jdk.incubator.vector.VectorOperators.Binary
+
+import scala.annotation.{tailrec, unused}
 
 
-sealed trait Term { // TODO: описать toString для всех кейс-классов
+sealed trait Term { // TODO: описать приведение к строке для сортировки для всех кейс-классов
     val isBinary: Boolean
     def toRegex: String
 }
@@ -71,7 +73,8 @@ object Term {
         }
     }
 
-    private def swapBinary[T <: Binary](root: T): Unit = {
+    @unused
+    private def swapBinary[T <: Binary](root: T): Unit = { // TODO: можно ли вообще в рантайме сравнивать параметризованные типы корректно?
         (root.left, root.right) match {
             case (left: T, right: T) if root.getClass.isInstance(left.getClass) && root.getClass.isInstance(right.getClass) =>
                 val oldRootLeft = left
@@ -82,6 +85,31 @@ object Term {
                 root.right = newRootRight
                 if (newRootRight.isBinary) transformToLeftAssociativity(root)
             case (left: Term, right: T) if root.getClass.isInstance(right.getClass) =>
+                println("SIMPLE SWAPPING")
+                val oldLeftTerm = left
+                root.left = root.right
+                root.right = oldLeftTerm
+            case _ =>
+                println("NO SWAPPING")
+                println(root.getClass)
+                println(root.left.getClass)
+                println(root.right.getClass)
+                println(root.getClass.isInstance(root.right.getClass))
+        }
+        println(s"ROOT TRANSFORMED: ${root}")
+    }
+
+    private def swapAlternative(root: Or): Unit = {
+        (root.left, root.right) match {
+            case (left: Or, right: Or)  =>
+                val oldRootLeft = left
+                root.left = right
+                val newRootRight = root.left.asInstanceOf[Or].right
+                root.left.asInstanceOf[Or].right = root.left.asInstanceOf[Or].left // swap
+                root.left.asInstanceOf[Or].left = oldRootLeft
+                root.right = newRootRight
+                if (newRootRight.isBinary) transformToLeftAssociativity(root)
+            case (left: Term, right: Or) =>
                 val oldLeftTerm = left
                 root.left = root.right
                 root.right = oldLeftTerm
@@ -89,25 +117,45 @@ object Term {
         }
     }
 
-
+    private def swapConcat(root: Concat): Unit = {
+        (root.left, root.right) match {
+            case (left: Concat, right: Concat) =>
+                val oldRootLeft = left
+                root.left = right
+                val newRootRight = root.left.asInstanceOf[Concat].right
+                root.left.asInstanceOf[Concat].right = root.left.asInstanceOf[Concat].left // swap
+                root.left.asInstanceOf[Concat].left = oldRootLeft
+                root.right = newRootRight
+                if (newRootRight.isBinary) transformToLeftAssociativity(root)
+            case (left: Term, right: Concat) =>
+                val oldLeftTerm = left
+                root.left = root.right
+                root.right = oldLeftTerm
+            case _ => ()
+        }
+    }
 
     def transformToLeftAssociativity(toTransform: Term): Unit = {
         toTransform match {
             case or@Or(left, right, _) =>
-                swapBinary[Or](or)
+//                swapBinary[Or](or)
+                swapAlternative(or)
                 transformToLeftAssociativity(left)
                 transformToLeftAssociativity(right)
             case concat@Concat(left, right) =>
-                swapBinary[Concat](concat)
+//                swapBinary[Concat](concat)
+                swapConcat(concat)
                 transformToLeftAssociativity(left)
                 transformToLeftAssociativity(right)
             case repeat@Repeat(term) =>
                 transformToLeftAssociativity(term)
+            case t@RegexTree(root) => transformToLeftAssociativity(root)
             case _ => ()
         }
     }
 
     def normalizeAlternatives(term: Term, isLeftChild: Boolean, parent: Option[Term] = None): Unit = { // process only when tree is left associative
+        @unused
         @tailrec
         def getAlternativeSubtree(current: Term, subtree: Vector[Or] = Vector.empty): Vector[Or] = {
             current match {
@@ -125,18 +173,15 @@ object Term {
 
         def createAlternativesWithArguments(args: Vector[Term]): Or = {
             if (args.size == 1) throw new Exception("incorrect alternatives input")
-            else if (args.size == 2) Or(args(0), args(1), isACIProcessed = true)
+            else if (args.size == 2) Or(args(1), args(0), isACIProcessed = true)
             else Or(createAlternativesWithArguments(args.tail), args.head, isACIProcessed = true)
         }
 
         term match {
             case or@Or(left, right, isACIProcessed) if !isACIProcessed =>
                 val args = getAlternativeSubtreeArguments(or)
-//                println(s"UNPROCESSED OR ARGS: $args")
-                val processedArgs = args.distinctBy(_.toString).sortBy(_.toString) // TODO: узнать ещё раз, как сортировать лексикографически
-//                println(s"OR ARGS: $processedArgs") // TODO: remove
+                val processedArgs = args.distinctBy(_.toString).sortBy(_.toString).reverse // TODO: узнать ещё раз, как сортировать лексикографически
                 val formedAlternatives = createAlternativesWithArguments(processedArgs)
-                //println(Term.prettyTree(formedAlternatives)) // TODO: remove
                 parent.foreach {
                     case b: Binary => if (isLeftChild) b.left = formedAlternatives else b.right = formedAlternatives
                     case r@Repeat(_) => r.term = formedAlternatives

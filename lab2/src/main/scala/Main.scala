@@ -2,7 +2,7 @@ import model.{RegexTree, Term}
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val init = "(((ab|c)|b*)*)*"
+    val init1 = "(((ab|c)|b*)*)*"
     val init2 = "abc****"
     val init3 = "a***b*c*****"
     val init4 = "abc(de)"
@@ -15,7 +15,9 @@ object Main {
     val init11 = "(gh)ab(cd(ef))"
     val init12 = "xz|xy"
     val init13 = "yx|zx"
-    val res = RegexParser.apply(init12)
+    val init14 = "x|(y|(w|z))"
+    val init15 = "x|(y|z)"
+    val res = RegexParser.apply(init1)
     println(res.map(_.toString))
 
     res match {
@@ -23,6 +25,9 @@ object Main {
         println(Term.prettyTree(result))
 //        println(Term.applySSNF(result))
         val tree = RegexTree(Term.applySSNF(result))
+
+        println("PARSING RESULT WITH SSNF")
+        println(Term.prettyTree(tree.root))
 
         Term.transformToLeftAssociativity(tree.root)
         println("APPLYING LA")
