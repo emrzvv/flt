@@ -1,13 +1,11 @@
 package model
 
-import jdk.incubator.vector.VectorOperators.Binary
-
 import scala.annotation.{tailrec, unused}
 
-
-sealed trait Term { // TODO: описать приведение к строке для сортировки для всех кейс-классов
+sealed trait Term {
     val isBinary: Boolean
     def toRegex: String
+    def toPrettyRegex: String
 }
 sealed trait Binary extends Term {
     var left: Term
@@ -19,35 +17,67 @@ case class Symbol(value: Char) extends Term { // a
     override val isBinary: Boolean = false
 
     override def toRegex: String = value.toString
+
+    override def toPrettyRegex: String = value.toString
 }
 case class Or(var left: Term, var right: Term, var isACIProcessed: Boolean = false) extends Term with Binary { // a|b
-//    override def toString: String = (left, right) match {
-//        case (Symbol(l), Symbol(r)) => s"$l|$r"
-//    }
     override val isBinary: Boolean = true
 
     override def toRegex: String = s"(${left.toRegex}|${right.toRegex})"
+
+    override def toPrettyRegex: String = {
+        def prettyArg(term: Term): String = term match {
+            case s@Symbol(_) => s.toPrettyRegex
+            case or@Or(_, _, _) => s"(${or.toPrettyRegex})"
+            case concat@Concat(_, _) => concat.toPrettyRegex
+            case repeat@Repeat(_) => s"${repeat.toPrettyRegex}"
+        }
+
+        s"${prettyArg(left)}|${prettyArg(right)}"
+    }
 }
 case class Concat(var left: Term, var right: Term) extends Term with Binary { // ab
     override val isBinary: Boolean = true
 
     override def toRegex: String = s"(${left.toRegex}${right.toRegex})"
+
+    override def toPrettyRegex: String = {
+        def prettyArg(term: Term): String = term match {
+            case s@Symbol(_) => s.toPrettyRegex
+            case or@Or(_, _, _) => s"(${or.toPrettyRegex})"
+            case concat@Concat(_, _) => concat.toPrettyRegex
+            case repeat@Repeat(_) => s"${repeat.toPrettyRegex}"
+        }
+
+        s"${prettyArg(left)}${prettyArg(right)}"
+    }
 }
 case class Repeat(var term: Term) extends Term { // a*
     override val isBinary: Boolean = false
 
     override def toRegex: String = s"(${term.toRegex})*"
+
+    override def toPrettyRegex: String = term match {
+        case s@Symbol(_) => s"${s.toPrettyRegex}*"
+        case or@Or(_, _, _) => s"(${or.toPrettyRegex})*"
+        case concat@Concat(_, _) => s"(${concat.toPrettyRegex})*"
+        case repeat@Repeat(_) => s"(${repeat.toPrettyRegex})*"
+    }
 }
 // made it mutable to rebuild binary tree the most easiest way
 case class RegexTree(var root: Term) extends Term {
     override val isBinary: Boolean = false
 
     override def toRegex: String = root.toRegex
+
+    override def toPrettyRegex: String = root.toPrettyRegex
 }
 case object Eps extends Term {
     override val isBinary: Boolean = false
 
     override def toRegex: String = ""
+
+    override def toPrettyRegex: String = ""
 }
 
 object Term {

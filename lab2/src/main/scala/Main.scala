@@ -18,6 +18,7 @@ object Main {
     val init14 = "x|(y|(w|z))"
     val init15 = "x|(y|z)"
     val init16 = "xz|xy|xw|xc|xa|xb|e"
+    val init17 = "zx|yx|wx|cx|ax|bx|u"
     val res = RegexParser.apply(init16)
     println(res.map(_.toString))
 
@@ -43,6 +44,7 @@ object Main {
         println(Term.prettyTree(tree.root))
 
         println(tree.toRegex)
+        println(tree.toPrettyRegex)
       }
       case None => println("didn't parse lol")
     }
