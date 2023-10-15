@@ -4,6 +4,7 @@ import scala.io.Source
 import util.Control._
 
 import java.io.{File, PrintWriter}
+import scala.util.Try
 object Main {
   def main(args: Array[String]): Unit = {
     val init1 = "(((ab|c)|b*)*)*"
@@ -61,7 +62,7 @@ object Main {
       for (regex <- source.getLines()) {
         val toWrite = if (regex.isBlank || regex.isEmpty) "empty"
         else {
-          val parsed: Option[Term] = RegexParser(regex)
+          val parsed: Option[Term] = Try(RegexParser(regex)).toOption.flatten
           parsed match {
             case Some(result) =>
               val tree = RegexTree(Term.applySSNF(result))
