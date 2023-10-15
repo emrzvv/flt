@@ -19,7 +19,7 @@ object Main {
     val init15 = "x|(y|z)"
     val init16 = "xz|xy|xw|xc|xa|xb|e"
     val init17 = "zx|yx|wx|cx|ax|bx|u"
-    val res = RegexParser.apply(init16)
+    val res = RegexParser.apply(init15)
     println(res.map(_.toString))
 
     res match {
@@ -35,11 +35,11 @@ object Main {
         println("APPLYING LA")
         println(Term.prettyTree(tree.root))
 
-        Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = Some(tree))
+        Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = tree)
         println("NORMALIZING ALT")
         println(Term.prettyTree(tree.root))
 
-        Term.applyDstr(tree.root, isLeftChild = false, parent = Some(tree))
+        Term.applyDstr(tree.root, isLeftChild = false, parent = tree)
         println("APPLYING DSTR")
         println(Term.prettyTree(tree.root))
 

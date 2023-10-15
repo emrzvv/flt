@@ -168,12 +168,10 @@ object Term {
     def transformToLeftAssociativity(toTransform: Term): Unit = {
         toTransform match {
             case or@Or(left, right, _) =>
-//                swapBinary[Or](or)
                 swapAlternative(or)
                 transformToLeftAssociativity(left)
                 transformToLeftAssociativity(right)
             case concat@Concat(left, right) =>
-//                swapBinary[Concat](concat)
                 swapConcat(concat)
                 transformToLeftAssociativity(left)
                 transformToLeftAssociativity(right)
@@ -184,7 +182,15 @@ object Term {
         }
     }
 
-    def normalizeAlternatives(term: Term, isLeftChild: Boolean, parent: Option[Term] = None): Unit = { // process only when tree is left associative
+    def replaceChild(parent: Term, isLeftChild: Boolean, newChild: Term): Unit = {
+        parent match {
+            case b: Binary => if (isLeftChild) b.left = newChild else b.right = newChild
+            case r@Repeat(_) => r.term = newChild
+            case t@RegexTree(_) => t.root = newChild
+        }
+    }
+
+    def normalizeAlternatives(term: Term, isLeftChild: Boolean, parent: Term): Unit = { // process only when tree is left associative
         @unused
         @tailrec
         def getAlternativeSubtree(current: Term, subtree: Vector[Or] = Vector.empty): Vector[Or] = {
@@ -212,53 +218,40 @@ object Term {
                 val args = getAlternativeSubtreeArguments(or)
                 val processedArgs = args.distinctBy(_.toString).sortBy(_.toString).reverse // TODO: узнать ещё раз, как сортировать лексикографически
                 val formedAlternatives = createAlternativesWithArguments(processedArgs)
-                parent.foreach {
-                    case b: Binary => if (isLeftChild) b.left = formedAlternatives else b.right = formedAlternatives
-                    case r@Repeat(_) => r.term = formedAlternatives
-                    case t@RegexTree(_) => t.root = formedAlternatives
-                }
-                normalizeAlternatives(formedAlternatives.left, isLeftChild = true, parent = Some(formedAlternatives))
-                normalizeAlternatives(formedAlternatives.right, isLeftChild = false, parent = Some(formedAlternatives))
+                replaceChild(parent, isLeftChild, newChild = formedAlternatives)
+                normalizeAlternatives(formedAlternatives.left, isLeftChild = true, parent = formedAlternatives)
+                normalizeAlternatives(formedAlternatives.right, isLeftChild = false, parent = formedAlternatives)
             case or@Or(left, right, _) =>
-                normalizeAlternatives(left, isLeftChild = true, parent = Some(or))
-                normalizeAlternatives(right, isLeftChild = false, parent = Some(or))
+                normalizeAlternatives(left, isLeftChild = true, parent = or)
+                normalizeAlternatives(right, isLeftChild = false, parent = or)
             case concat@Concat(left, right) =>
-                normalizeAlternatives(left, isLeftChild = true, parent = Some(concat))
-                normalizeAlternatives(right, isLeftChild = false, parent = Some(concat))
-            case repeat@Repeat(inner) => normalizeAlternatives(inner, isLeftChild = false, parent = Some(repeat))
+                normalizeAlternatives(left, isLeftChild = true, parent = concat)
+                normalizeAlternatives(right, isLeftChild = false, parent = concat)
+            case repeat@Repeat(inner) => normalizeAlternatives(inner, isLeftChild = false, parent = repeat)
             case _ => ()
         }
     }
 
-    def applyDstr(term: Term, isLeftChild: Boolean, parent: Option[Term] = None): Unit = {
+    def applyDstr(term: Term, isLeftChild: Boolean, parent: Term): Unit = {
         term match {
             case or@Or(left, right, _) =>
-                applyDstr(or.left, isLeftChild = true, parent = Some(or))
-                applyDstr(or.right, isLeftChild = false, parent = Some(or)) // может быть, после применённых dstr это уже не or
+                applyDstr(or.left, isLeftChild = true, parent = or)
+                applyDstr(or.right, isLeftChild = false, parent = or) // может быть, после применённых dstr это уже не or
                 (or.left, or.right) match { // ab|ac = a(b|c); ba|ca = (b|c)a
                     case (Concat(a, b), Concat(c, d)) =>
                         if (a.toString == c.toString) {
                             val createdConcat = Concat(a, Or(b, d, isACIProcessed = true))
-                            parent.foreach { // TODO: вынести в отдельную функцию replaceParentChild(child: Term)
-                                case b: Binary => if (isLeftChild) b.left = createdConcat else b.right = createdConcat
-                                case r@Repeat(_) => r.term = createdConcat
-                                case t@RegexTree(_) => t.root = createdConcat
-                            }
+                            replaceChild(parent, isLeftChild, newChild = createdConcat)
                         } else if (b.toString == d.toString) {
-                            println(s"$b == $d")
                             val createdConcat = Concat(Or(a, c, isACIProcessed = true), d)
-                            parent.foreach { // TODO: вынести в отдельную функцию replaceParentChild(child: Term)
-                                case b: Binary => if (isLeftChild) b.left = createdConcat else b.right = createdConcat
-                                case r@Repeat(_) => r.term = createdConcat
-                                case t@RegexTree(_) => t.root = createdConcat
-                            }
+                            replaceChild(parent, isLeftChild, newChild = createdConcat)
                         } else ()
                     case _ => ()
                 }
             case concat@Concat(left, right) =>
-                applyDstr(left, isLeftChild = true, Some(concat))
-                applyDstr(right, isLeftChild = false, Some(concat))
-            case repeat@Repeat(term) => applyDstr(term, isLeftChild = false, Some(repeat))
+                applyDstr(left, isLeftChild = true, concat)
+                applyDstr(right, isLeftChild = false, concat)
+            case repeat@Repeat(term) => applyDstr(term, isLeftChild = false, repeat)
             case Symbol(_) => ()
         }
     }
