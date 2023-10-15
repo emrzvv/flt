@@ -17,7 +17,8 @@ object Main {
     val init13 = "yx|zx"
     val init14 = "x|(y|(w|z))"
     val init15 = "x|(y|z)"
-    val res = RegexParser.apply(init1)
+    val init16 = "xz|xy|xw|xc|xa|xb|e"
+    val res = RegexParser.apply(init16)
     println(res.map(_.toString))
 
     res match {

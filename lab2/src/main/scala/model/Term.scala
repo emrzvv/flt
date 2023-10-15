@@ -203,9 +203,9 @@ object Term {
     def applyDstr(term: Term, isLeftChild: Boolean, parent: Option[Term] = None): Unit = {
         term match {
             case or@Or(left, right, _) =>
-                applyDstr(left, isLeftChild = true, parent = Some(or))
-                applyDstr(right, isLeftChild = false, parent = Some(or))
-                (left, right) match { // ab|ac = a(b|c); ba|ca = (b|c)a
+                applyDstr(or.left, isLeftChild = true, parent = Some(or))
+                applyDstr(or.right, isLeftChild = false, parent = Some(or)) // может быть, после применённых dstr это уже не or
+                (or.left, or.right) match { // ab|ac = a(b|c); ba|ca = (b|c)a
                     case (Concat(a, b), Concat(c, d)) =>
                         if (a.toString == c.toString) {
                             val createdConcat = Concat(a, Or(b, d, isACIProcessed = true))
@@ -215,6 +215,7 @@ object Term {
                                 case t@RegexTree(_) => t.root = createdConcat
                             }
                         } else if (b.toString == d.toString) {
+                            println(s"$b == $d")
                             val createdConcat = Concat(Or(a, c, isACIProcessed = true), d)
                             parent.foreach { // TODO: вынести в отдельную функцию replaceParentChild(child: Term)
                                 case b: Binary => if (isLeftChild) b.left = createdConcat else b.right = createdConcat
