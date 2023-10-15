@@ -1,5 +1,9 @@
 import model.{RegexTree, Term}
 
+import scala.io.Source
+import util.Control._
+
+import java.io.{File, PrintWriter}
 object Main {
   def main(args: Array[String]): Unit = {
     val init1 = "(((ab|c)|b*)*)*"
@@ -19,34 +23,58 @@ object Main {
     val init15 = "x|(y|z)"
     val init16 = "xz|xy|xw|xc|xa|xb|e"
     val init17 = "zx|yx|wx|cx|ax|bx|u"
-    val res = RegexParser.apply(init15)
-    println(res.map(_.toString))
+//    val res = RegexParser.apply(init15)
+//    println(res.map(_.toString))
 
-    res match {
-      case Some(result) => {
-        println(Term.prettyTree(result))
-//        println(Term.applySSNF(result))
-        val tree = RegexTree(Term.applySSNF(result))
+//    res match {
+//      case Some(result) => {
+//        println(Term.prettyTree(result))
+////        println(Term.applySSNF(result))
+//        val tree = RegexTree(Term.applySSNF(result))
+//
+//        println("PARSING RESULT WITH SSNF")
+//        println(Term.prettyTree(tree.root))
+//
+//        Term.transformToLeftAssociativity(tree.root)
+//        println("APPLYING LA")
+//        println(Term.prettyTree(tree.root))
+//
+//        Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = tree)
+//        println("NORMALIZING ALT")
+//        println(Term.prettyTree(tree.root))
+//
+//        Term.applyDstr(tree.root, isLeftChild = false, parent = tree)
+//        println("APPLYING DSTR")
+//        println(Term.prettyTree(tree.root))
+//
+//        println(tree.toRegex)
+//        println(tree.toPrettyRegex)
+//      }
+//      case None => println("didn't parse lol")
+//    }
 
-        println("PARSING RESULT WITH SSNF")
-        println(Term.prettyTree(tree.root))
+    val input = if (args.length >= 1) args(0) else throw new Exception("no test input")
+    val output = if (args.length == 2) args(1) else "./normalized.txt"
 
-        Term.transformToLeftAssociativity(tree.root)
-        println("APPLYING LA")
-        println(Term.prettyTree(tree.root))
-
-        Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = tree)
-        println("NORMALIZING ALT")
-        println(Term.prettyTree(tree.root))
-
-        Term.applyDstr(tree.root, isLeftChild = false, parent = tree)
-        println("APPLYING DSTR")
-        println(Term.prettyTree(tree.root))
-
-        println(tree.toRegex)
-        println(tree.toPrettyRegex)
+    val writer = new PrintWriter(new File(output))
+    using(Source.fromFile(input)) { source =>
+      for (regex <- source.getLines()) {
+        val toWrite = if (regex.isBlank || regex.isEmpty) "empty"
+        else {
+          val parsed: Option[Term] = RegexParser(regex)
+          parsed match {
+            case Some(result) =>
+              val tree = RegexTree(Term.applySSNF(result))
+              Term.transformToLeftAssociativity(tree.root)
+              Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = tree)
+              Term.applyDstr(tree.root, isLeftChild = false, parent = tree)
+              tree.toPrettyRegex
+            case None => "not parsed"
+          }
+        }
+        writer.println(toWrite)
       }
-      case None => println("didn't parse lol")
     }
+    writer.close()
   }
 }

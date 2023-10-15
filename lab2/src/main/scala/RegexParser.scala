@@ -25,7 +25,7 @@ object RegexParser extends RegexParsers with PackratParsers {
   }
 
   def apply(input: String): Option[Term] = {
-    println(input.clean)
+//    println(input.clean)
     parseAll(maxPriority, input.clean) match {
       case Success(result, _) => Some(result)
       case _ => None
