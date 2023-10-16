@@ -101,6 +101,7 @@ object Term {
         term match {
             case s@Symbol(_) => s
             case Or(left, right, _) => Or(applySS(left), applySS(right))
+            case Concat(left: Repeat, right: Repeat) => Or(applySS(left), applySS(right))
             case Concat(left, right) => Concat(applySSNF(left), applySSNF(right))
             case Repeat(term) => applySS(term)
         }
