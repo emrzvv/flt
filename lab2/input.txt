@@ -14,8 +14,21 @@ xz|xy
 yx|zx
 x|(y|(w|z))
 x|(y|z)
-
-
-
+##spdofjs]- ,[<9i1][ 4k
+(((((abc)))))
 xz|xy|xw|xc|xa|xb|e
 zx|yx|wx|cx|ax|bx|u
+a*a|b*|a*c
+(((c|a(b|c)|b|a)|b)*|((acd)e)*)*
+(a|a(b|c|cde)|b|c)*
+xy|xz|xw
+xwz|xwe|xwf|xwt
+xaw|xaf|xfa|xtg
+abbba|addddda
+abobus|amogus
+ab|a
+(a|b)cde|(a|b)fgh
+cde(a|b)h|cde(a|b)g
+(abc(cde)*)*
+((abc)*(cde)*)*
+a*a|b|a*c

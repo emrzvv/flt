@@ -31,6 +31,7 @@ case class Or(var left: Term, var right: Term, var isACIProcessed: Boolean = fal
             case or@Or(_, _, _) => s"(${or.toPrettyRegex})"
             case concat@Concat(_, _) => concat.toPrettyRegex
             case repeat@Repeat(_) => s"${repeat.toPrettyRegex}"
+            case Eps => Eps.toPrettyRegex
         }
 
         s"${prettyArg(left)}|${prettyArg(right)}"
@@ -47,6 +48,7 @@ case class Concat(var left: Term, var right: Term) extends Term with Binary { //
             case or@Or(_, _, _) => s"(${or.toPrettyRegex})"
             case concat@Concat(_, _) => concat.toPrettyRegex
             case repeat@Repeat(_) => s"${repeat.toPrettyRegex}"
+            case Eps => Eps.toPrettyRegex
         }
 
         s"${prettyArg(left)}${prettyArg(right)}"
@@ -62,6 +64,7 @@ case class Repeat(var term: Term) extends Term { // a*
         case or@Or(_, _, _) => s"(${or.toPrettyRegex})*"
         case concat@Concat(_, _) => s"(${concat.toPrettyRegex})*"
         case repeat@Repeat(_) => s"(${repeat.toPrettyRegex})*"
+        case Eps => Eps.toPrettyRegex
     }
 }
 // made it mutable to rebuild binary tree the most easiest way
@@ -72,12 +75,12 @@ case class RegexTree(var root: Term) extends Term {
 
     override def toPrettyRegex: String = root.toPrettyRegex
 }
-case object Eps extends Term {
+case object Eps extends Term { // нужен, потому что у меня нет идей, как можно легко обработать крайние случаи для dstr
     override val isBinary: Boolean = false
 
-    override def toRegex: String = ""
+    override def toRegex: String = "ε"
 
-    override def toPrettyRegex: String = ""
+    override def toPrettyRegex: String = "ε"
 }
 
 object Term {
@@ -233,19 +236,105 @@ object Term {
     }
 
     def applyDstr(term: Term, isLeftChild: Boolean, parent: Term): Unit = {
+        @tailrec
+        def getConcatSubtreeArguments(current: Term, args: Vector[Term] = Vector.empty): Vector[Term] = current match {
+            case Concat(left: Concat, right) => getConcatSubtreeArguments(left, args :+ right)
+            case Concat(left, right) => args :+ right :+ left
+            case term@_ => args :+ term
+        }
+
+        def getCommonLeft(leftArgs: Vector[Term], rightArgs: Vector[Term]): Vector[Term] = {
+            leftArgs.zip(rightArgs).takeWhile(tt => tt._1.toString == tt._2.toString).map(_._1)
+        }
+
+        def getCommonRight(leftArgs: Vector[Term], rightArgs: Vector[Term]): Vector[Term] = {
+            getCommonLeft(leftArgs.reverse, rightArgs.reverse)
+        }
+
+        def createConcatWithArguments(args: Vector[Term]): Term = {
+            println(s"${args.size} : ${args}")
+            if (args.isEmpty) Eps
+            else if (args.size == 1) throw new Exception("incorrect concat arguments")
+            else if (args.size == 2) Concat(args(1), args(0))
+            else Concat(createConcatWithArguments(args.tail), args.head)
+        }
+
+        def dstrl(leftArgs: Vector[Term], rightArgs: Vector[Term]) = {
+            val commonLeft = getCommonLeft(leftArgs, rightArgs)
+            println(s"COMMON LEFT: ${commonLeft}")
+            val toTakeOut =
+                if (commonLeft.size == 1) commonLeft.head
+                else createConcatWithArguments(commonLeft.reverse)
+            val newLeftArgs = leftArgs.drop(commonLeft.size)
+            val newRightArgs = rightArgs.drop(commonLeft.size)
+            println("TO LEFT OR")
+            val toLeft = {
+                if (newLeftArgs.isEmpty) Eps
+                else if (newLeftArgs.size == 1) newLeftArgs.head
+                else createConcatWithArguments(newLeftArgs.reverse)
+            }
+
+            val toRight = {
+                if (newRightArgs.isEmpty) Eps
+                else if (newRightArgs.size == 1) newRightArgs.head
+                else createConcatWithArguments(newRightArgs.reverse)
+            }
+            Concat(toTakeOut, Or(toLeft, toRight, isACIProcessed = true))
+        }
+
+        def dstrr(leftArgs: Vector[Term], rightArgs: Vector[Term]) = {
+            val commonRight = getCommonRight(leftArgs, rightArgs)
+            val toTakeOut = {
+                if (commonRight.size == 1) commonRight.head
+                else createConcatWithArguments(commonRight.reverse)
+            }
+
+            val newLeftArgs = leftArgs.dropRight(commonRight.size)
+            val newRightArgs = rightArgs.dropRight(commonRight.size)
+
+            val toLeft = {
+                if (newLeftArgs.isEmpty) Eps
+                else if (newLeftArgs.size == 1) newLeftArgs.head
+                else createConcatWithArguments(newLeftArgs.reverse)
+            }
+
+            val toRight = {
+                if (newRightArgs.isEmpty) Eps
+                else if (newRightArgs.size == 1) newRightArgs.head
+                else createConcatWithArguments(newRightArgs.reverse)
+            }
+            Concat(Or(toLeft, toRight, isACIProcessed = true), toTakeOut)
+        }
+
         term match {
-            case or@Or(left, right, _) =>
+            case or@Or(_, _, _) =>
                 applyDstr(or.left, isLeftChild = true, parent = or)
                 applyDstr(or.right, isLeftChild = false, parent = or) // может быть, после применённых dstr это уже не or
                 (or.left, or.right) match { // ab|ac = a(b|c); ba|ca = (b|c)a
                     case (Concat(a, b), Concat(c, d)) =>
-                        if (a.toString == c.toString) {
-                            val createdConcat = Concat(a, Or(b, d, isACIProcessed = true))
-                            replaceChild(parent, isLeftChild, newChild = createdConcat)
-                        } else if (b.toString == d.toString) {
-                            val createdConcat = Concat(Or(a, c, isACIProcessed = true), d)
-                            replaceChild(parent, isLeftChild, newChild = createdConcat)
+                        val leftConcatArgs = getConcatSubtreeArguments(or.left).reverse
+                        val rightConcatArgs = getConcatSubtreeArguments(or.right).reverse
+//                        println("------")
+//                        println(leftConcatArgs)
+//                        println(rightConcatArgs)
+                        if (leftConcatArgs.head.toString == rightConcatArgs.head.toString) {
+//                            println(s"DSTRL: ${or.left} ; ${or.right} ")
+                            val newChild = dstrl(leftConcatArgs, rightConcatArgs)
+                            replaceChild(parent, isLeftChild, newChild)
+                            applyDstr(newChild, isLeftChild, parent)
+                        } else if (leftConcatArgs.last.toString == rightConcatArgs.last.toString) {
+//                            println(println(s"DSTRR: ${or.left} ; ${or.right} "))
+                            val newChild = dstrr(leftConcatArgs, rightConcatArgs)
+                            replaceChild(parent, isLeftChild, newChild)
+                            applyDstr(newChild, isLeftChild, parent)
                         } else ()
+//                        if (a.toString == c.toString) {
+//                            val createdConcat = Concat(a, Or(b, d, isACIProcessed = true))
+//                            replaceChild(parent, isLeftChild, newChild = createdConcat)
+//                        } else if (b.toString == d.toString) {
+//                            val createdConcat = Concat(Or(a, c, isACIProcessed = true), d)
+//                            replaceChild(parent, isLeftChild, newChild = createdConcat)
+//                        } else ()
                     case _ => ()
                 }
             case concat@Concat(left, right) =>
@@ -253,6 +342,7 @@ object Term {
                 applyDstr(right, isLeftChild = false, concat)
             case repeat@Repeat(term) => applyDstr(term, isLeftChild = false, repeat)
             case Symbol(_) => ()
+            case Eps => ()
         }
     }
 }

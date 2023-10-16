@@ -40,35 +40,43 @@ object Main {
       val init15 = "x|(y|z)"
       val init16 = "xz|xy|xw|xc|xa|xb|e"
       val init17 = "zx|yx|wx|cx|ax|bx|u"
-  //    val res = RegexParser.apply(init15)
-  //    println(res.map(_.toString))
-
-  //    res match {
-  //      case Some(result) => {
-  //        println(Term.prettyTree(result))
-  ////        println(Term.applySSNF(result))
-  //        val tree = RegexTree(Term.applySSNF(result))
-  //
-  //        println("PARSING RESULT WITH SSNF")
-  //        println(Term.prettyTree(tree.root))
-  //
-  //        Term.transformToLeftAssociativity(tree.root)
-  //        println("APPLYING LA")
-  //        println(Term.prettyTree(tree.root))
-  //
-  //        Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = tree)
-  //        println("NORMALIZING ALT")
-  //        println(Term.prettyTree(tree.root))
-  //
-  //        Term.applyDstr(tree.root, isLeftChild = false, parent = tree)
-  //        println("APPLYING DSTR")
-  //        println(Term.prettyTree(tree.root))
-  //
-  //        println(tree.toRegex)
-  //        println(tree.toPrettyRegex)
-  //      }
-  //      case None => println("didn't parse lol")
-  //    }
+      val init18 = "(((c|a(b|c)|b|a)|b)*|((acd)e)*)*"
+      val init19 = "xyz|x(a|b)"
+      val init20 = "a|a" // ???
+      val init21 = "abbbba|adddda"
+      val init22 = "(acde|agz|acdf|ab|ac)"
+    val init23 = "xy|xw|xz"
+    val init24 = "(abcdez|abcdz|abcz|abz|az)" // !!!
+    val init25 = "a|ab|abc|abcd|abcde"
+//      val res = RegexParser.apply(init2)
+//      println(res.map(_.toString))
+//
+//      res match {
+//        case Some(result) => {
+//          println(Term.prettyTree(result))
+//  //        println(Term.applySSNF(result))
+//          val tree = RegexTree(Term.applySSNF(result))
+//
+//          println("PARSING RESULT WITH SSNF")
+//          println(Term.prettyTree(tree.root))
+//
+//          Term.transformToLeftAssociativity(tree.root)
+//          println("APPLYING LA")
+//          println(Term.prettyTree(tree.root))
+//
+//          Term.normalizeAlternatives(tree.root, isLeftChild = false, parent = tree)
+//          println("NORMALIZING ALT")
+//          println(Term.prettyTree(tree.root))
+//
+//          Term.applyDstr(tree.root, isLeftChild = false, parent = tree)
+//          println("APPLYING DSTR")
+//          println(Term.prettyTree(tree.root))
+//
+//          println(tree.toRegex)
+//          println(tree.toPrettyRegex)
+//        }
+//        case None => println("didn't parse lol")
+//      }
 
     val input = if (args.length >= 1) args(0) else throw new Exception("no test input")
       val output = if (args.length == 2) args(1) else "./normalized.txt"
