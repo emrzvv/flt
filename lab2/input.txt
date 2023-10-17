@@ -34,3 +34,7 @@ cde(a|b)h|cde(a|b)g
 a*a|b|a*c
 abcde|abcd|abc|ab|a
 a|ab|abc|abcd|abcde
+x|abu|xao|xaj|uo
+xao|xaj
+xao|xaj|oij|x
+xaj|xao|oij|x

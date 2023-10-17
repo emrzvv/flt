@@ -300,7 +300,7 @@ object Term {
             val toTakeOut =
                 if (common.isEmpty) Eps
                 else if (common.size == 1) commonRight.head
-                else createConcatWithArguments(common.reverse)
+                else createConcatWithArguments(common)
 
             val newLeftArgs = leftArgs.dropRight(common.size)
             val newRightArgs = rightArgs.dropRight(common.size)
