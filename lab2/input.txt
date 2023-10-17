@@ -32,3 +32,5 @@ cde(a|b)h|cde(a|b)g
 (abc(cde)*)*
 ((abc)*(cde)*)*
 a*a|b|a*c
+abcde|abcd|abc|ab|a
+a|ab|abc|abcd|abcde

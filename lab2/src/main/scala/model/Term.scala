@@ -260,15 +260,21 @@ object Term {
             else Concat(createConcatWithArguments(args.tail), args.head)
         }
 
-        def dstrl(leftArgs: Vector[Term], rightArgs: Vector[Term]) = {
+        def dstrl(leftArgs: Vector[Term], rightArgs: Vector[Term], current: Term) = {
             val commonLeft = getCommonLeft(leftArgs, rightArgs)
-            println(s"COMMON LEFT: ${commonLeft}")
+            val common = if (commonLeft.size == leftArgs.size || commonLeft.size == rightArgs.size) {
+                commonLeft.dropRight(1)
+            } else {
+                commonLeft
+            }
             val toTakeOut =
-                if (commonLeft.size == 1) commonLeft.head
-                else createConcatWithArguments(commonLeft.reverse)
-            val newLeftArgs = leftArgs.drop(commonLeft.size)
-            val newRightArgs = rightArgs.drop(commonLeft.size)
-            println("TO LEFT OR")
+                if (common.isEmpty) Eps
+                else if (common.size == 1) commonLeft.head
+                else createConcatWithArguments(common.reverse)
+
+            val newLeftArgs = leftArgs.drop(common.size)
+            val newRightArgs =  rightArgs.drop(common.size)
+
             val toLeft = {
                 if (newLeftArgs.isEmpty) Eps
                 else if (newLeftArgs.size == 1) newLeftArgs.head
@@ -280,18 +286,24 @@ object Term {
                 else if (newRightArgs.size == 1) newRightArgs.head
                 else createConcatWithArguments(newRightArgs.reverse)
             }
-            Concat(toTakeOut, Or(toLeft, toRight, isACIProcessed = true))
+            if (toTakeOut == Eps || toLeft == Eps || toRight == Eps) current
+            else Concat(toTakeOut, Or(toLeft, toRight, isACIProcessed = true))
         }
 
-        def dstrr(leftArgs: Vector[Term], rightArgs: Vector[Term]) = {
+        def dstrr(leftArgs: Vector[Term], rightArgs: Vector[Term], current: Term) = {
             val commonRight = getCommonRight(leftArgs, rightArgs)
-            val toTakeOut = {
-                if (commonRight.size == 1) commonRight.head
-                else createConcatWithArguments(commonRight.reverse)
+            val common = if (commonRight.size == leftArgs.size || commonRight.size == rightArgs.size) {
+                commonRight.dropRight(1)
+            } else {
+                commonRight
             }
+            val toTakeOut =
+                if (common.isEmpty) Eps
+                else if (common.size == 1) commonRight.head
+                else createConcatWithArguments(common.reverse)
 
-            val newLeftArgs = leftArgs.dropRight(commonRight.size)
-            val newRightArgs = rightArgs.dropRight(commonRight.size)
+            val newLeftArgs = leftArgs.dropRight(common.size)
+            val newRightArgs = rightArgs.dropRight(common.size)
 
             val toLeft = {
                 if (newLeftArgs.isEmpty) Eps
@@ -304,7 +316,8 @@ object Term {
                 else if (newRightArgs.size == 1) newRightArgs.head
                 else createConcatWithArguments(newRightArgs.reverse)
             }
-            Concat(Or(toLeft, toRight, isACIProcessed = true), toTakeOut)
+            if (toTakeOut == Eps || toLeft == Eps || toRight == Eps) current
+            else Concat(Or(toLeft, toRight, isACIProcessed = true), toTakeOut)
         }
 
         term match {
@@ -320,14 +333,18 @@ object Term {
 //                        println(rightConcatArgs)
                         if (leftConcatArgs.head.toString == rightConcatArgs.head.toString) {
 //                            println(s"DSTRL: ${or.left} ; ${or.right} ")
-                            val newChild = dstrl(leftConcatArgs, rightConcatArgs)
-                            replaceChild(parent, isLeftChild, newChild)
-                            applyDstr(newChild, isLeftChild, parent)
+                            val newChild = dstrl(leftConcatArgs, rightConcatArgs, or)
+                            if (newChild.toString != or.toString) {
+                                replaceChild(parent, isLeftChild, newChild)
+                                applyDstr(newChild, isLeftChild, parent)
+                            }
                         } else if (leftConcatArgs.last.toString == rightConcatArgs.last.toString) {
 //                            println(println(s"DSTRR: ${or.left} ; ${or.right} "))
-                            val newChild = dstrr(leftConcatArgs, rightConcatArgs)
-                            replaceChild(parent, isLeftChild, newChild)
-                            applyDstr(newChild, isLeftChild, parent)
+                            val newChild = dstrr(leftConcatArgs, rightConcatArgs, or)
+                            if (newChild.toString != or.toString) {
+                                replaceChild(parent, isLeftChild, newChild)
+                                applyDstr(newChild, isLeftChild, parent)
+                            }
                         } else ()
 //                        if (a.toString == c.toString) {
 //                            val createdConcat = Concat(a, Or(b, d, isACIProcessed = true))
