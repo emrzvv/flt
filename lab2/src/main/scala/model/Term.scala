@@ -6,6 +6,7 @@ sealed trait Term {
     val isBinary: Boolean
     def toRegex: String
     def toPrettyRegex: String
+    val couldBeEmpty: Boolean
 }
 sealed trait Binary extends Term {
     var left: Term
@@ -19,6 +20,8 @@ case class Symbol(value: Char) extends Term { // a
     override def toRegex: String = value.toString
 
     override def toPrettyRegex: String = value.toString
+
+    override lazy val couldBeEmpty: Boolean = false
 }
 case class Or(var left: Term, var right: Term, var isACIProcessed: Boolean = false) extends Term with Binary { // a|b
     override val isBinary: Boolean = true
@@ -36,6 +39,8 @@ case class Or(var left: Term, var right: Term, var isACIProcessed: Boolean = fal
 
         s"${prettyArg(left)}|${prettyArg(right)}"
     }
+
+    override lazy val couldBeEmpty: Boolean = left.couldBeEmpty || right.couldBeEmpty
 }
 case class Concat(var left: Term, var right: Term) extends Term with Binary { // ab
     override val isBinary: Boolean = true
@@ -53,6 +58,8 @@ case class Concat(var left: Term, var right: Term) extends Term with Binary { //
 
         s"${prettyArg(left)}${prettyArg(right)}"
     }
+
+    override lazy val couldBeEmpty: Boolean = left.couldBeEmpty && right.couldBeEmpty
 }
 case class Repeat(var term: Term) extends Term { // a*
     override val isBinary: Boolean = false
@@ -66,6 +73,8 @@ case class Repeat(var term: Term) extends Term { // a*
         case repeat@Repeat(_) => s"(${repeat.toPrettyRegex})*"
         case Eps => Eps.toPrettyRegex
     }
+
+    override lazy val couldBeEmpty: Boolean = true
 }
 // made it mutable to rebuild binary tree the most easiest way
 case class RegexTree(var root: Term) extends Term {
@@ -74,6 +83,8 @@ case class RegexTree(var root: Term) extends Term {
     override def toRegex: String = root.toRegex
 
     override def toPrettyRegex: String = root.toPrettyRegex
+
+    override lazy val couldBeEmpty: Boolean = root.couldBeEmpty
 }
 case object Eps extends Term { // нужен, потому что у меня нет идей, как можно легко обработать крайние случаи для dstr
     override val isBinary: Boolean = false
@@ -81,6 +92,8 @@ case object Eps extends Term { // нужен, потому что у меня н
     override def toRegex: String = "ε"
 
     override def toPrettyRegex: String = "ε"
+
+    override lazy val couldBeEmpty: Boolean = true
 }
 
 object Term {
@@ -102,6 +115,7 @@ object Term {
             case s@Symbol(_) => s
             case Or(left, right, _) => Or(applySS(left), applySS(right))
             case Concat(left: Repeat, right: Repeat) => Or(applySS(left), applySS(right))
+            case Concat(left, right) if left.couldBeEmpty && right.couldBeEmpty => Or(applySS(left), applySS(right))
             case Concat(left, right) => Concat(applySSNF(left), applySSNF(right))
             case Repeat(term) => applySS(term)
         }

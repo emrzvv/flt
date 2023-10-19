@@ -39,3 +39,6 @@ xao|xaj
 xao|xaj|oij|x
 xaj|xao|oij|x
 ((d|(((b*|b))*|da))|(c*)*)
+((a*b|b*c*)(a*|d*))*
+((ab|bc)(a*|d*))*
+((ab|bc)(a*|d*)*)*

@@ -49,7 +49,12 @@ object Main {
     val init24 = "(abcdez|abcdz|abcz|abz|az)" // !!!
     val init25 = "a|ab|abc|abcd|abcde"
     val init26 = "((d|(((b*|b))*|da))|(c*)*)"
-//      val res = RegexParser.apply(init26)
+    val init27 = "((a*b|b*c*)(a*|d*))*"
+    val init28 = "(a*|d*)"
+    val init29 = "(a*b|b*c*)"
+    val init30 = "((ab|bc)(a*|d*))*"
+    val init31 = "((ab|bc)(a*|d*)*)*"
+//      val res = RegexParser.apply(init31)
 //      println(res.map(_.toString))
 //
 //      res match {
@@ -61,7 +66,7 @@ object Main {
 //          println("PARSING RESULT WITH SSNF")
 //          println(Term.prettyTree(tree.root))
 //          println(tree.root.toPrettyRegex)
-//
+//          println(tree.root.couldBeEmpty)
 //          Term.transformToLeftAssociativity(tree.root)
 //          println("APPLYING LA")
 //          println(Term.prettyTree(tree.root))
