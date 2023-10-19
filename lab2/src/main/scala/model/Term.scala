@@ -212,7 +212,7 @@ object Term {
         }
 
         def createAlternativesWithArguments(args: Vector[Term]): Or = {
-            if (args.size == 1) throw new Exception("incorrect alternatives input")
+            if (args.size == 1) throw new Exception("incorrect alternatives args input")
             else if (args.size == 2) Or(args(1), args(0), isACIProcessed = true)
             else Or(createAlternativesWithArguments(args.tail), args.head, isACIProcessed = true)
         }
@@ -221,10 +221,16 @@ object Term {
             case or@Or(left, right, isACIProcessed) if !isACIProcessed =>
                 val args = getAlternativeSubtreeArguments(or)
                 val processedArgs = args.distinctBy(_.toString).sortBy(_.toString).reverse // TODO: узнать ещё раз, как сортировать лексикографически
-                val formedAlternatives = createAlternativesWithArguments(processedArgs)
+                val formedAlternatives =
+                    if (processedArgs.size == 1) processedArgs.head
+                    else createAlternativesWithArguments(processedArgs)
                 replaceChild(parent, isLeftChild, newChild = formedAlternatives)
-                normalizeAlternatives(formedAlternatives.left, isLeftChild = true, parent = formedAlternatives)
-                normalizeAlternatives(formedAlternatives.right, isLeftChild = false, parent = formedAlternatives)
+                formedAlternatives match {
+                    case newOr@Or(_, _, _) =>
+                        normalizeAlternatives(newOr.left, isLeftChild = true, parent = formedAlternatives)
+                        normalizeAlternatives(newOr.right, isLeftChild = false, parent = formedAlternatives)
+                    case _ => ()
+                }
             case or@Or(left, right, _) =>
                 normalizeAlternatives(left, isLeftChild = true, parent = or)
                 normalizeAlternatives(right, isLeftChild = false, parent = or)
@@ -253,7 +259,7 @@ object Term {
         }
 
         def createConcatWithArguments(args: Vector[Term]): Term = {
-            println(s"${args.size} : ${args}")
+//            println(s"${args.size} : ${args}")
             if (args.isEmpty) Eps
             else if (args.size == 1) throw new Exception("incorrect concat arguments")
             else if (args.size == 2) Concat(args(1), args(0))

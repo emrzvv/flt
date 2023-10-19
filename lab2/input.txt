@@ -38,3 +38,4 @@ x|abu|xao|xaj|uo
 xao|xaj
 xao|xaj|oij|x
 xaj|xao|oij|x
+((d|(((b*|b))*|da))|(c*)*)
