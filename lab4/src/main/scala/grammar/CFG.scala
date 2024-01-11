@@ -4,6 +4,7 @@ import utils.CommonUtils.{EOL, Eps}
 
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.util.control.Breaks.break
 
 case class CFG(
               startSymbol: String = "",
@@ -25,7 +26,6 @@ object CFG {
       val (from, to) = (line.split("->")(0).trim, line.split("->")(1).split("\\|").map(_.trim))
       to.map(rule => from + " -> " + rule)
     }.toVector
-    println(rules)
     apply(rules)
   }
 
@@ -130,45 +130,115 @@ object CFG {
       result + (target -> (result.getOrElse(target, Set()) ++ follows))
     }
 
-    def transformId(id: String): String = { // S => S'
-      val transformedId =
-        Iterator.iterate(id)(_ + "'").find(!(cfg.terminals ++ cfg.nonTerminals).contains(_)).get
-      transformedId
+    def transformId(id: String): String = {
+      var iid = id
+      var i = 1
+      val symbols = cfg.nonTerminals ++ cfg.terminals
+      var it = true
+      var s = ""
+      while (it) {
+        s = iid + "'"
+        if (!symbols.contains(s)) {
+          it = false
+        } else {
+          i += 1
+          iid = id + i.toString
+        }
+      }
+      s
     }
 
     val rules = Rule(transformId(cfg.startSymbol), right = List(cfg.startSymbol, EOL)) +: cfg.rules
-    val result = Map.empty[String, Set[String]]
-    val updatedResult = rules.foldLeft(result) { (acc, rule) =>
-      val followsToAdd = rule.right.sliding(2).flatMap {
-        case List(r, target) if cfg.isNonTerminal(target) =>
-          predict(r).flatMap {
-            case (r, s) if (s != Eps) => Set(s)
-            case (r, s) if (s == Eps) => Set(r.left)
+    val result = mutable.Map.empty[String, mutable.Set[String]]
+    var col = mutable.Set.empty[String]
+    rules.foreach { rule =>
+
+      if (!rule.isEpsRule) {
+        var jc = rule.right.size
+        var j = 1
+        while (j < jc) {
+          var r = rule.right.toVector(j)
+          var target = rule.right.toVector(j - 1)
+
+          if (cfg.isNonTerminal(target)) {
+            if (!result.contains(target)) {
+              col = mutable.Set[String]()
+              result += (target -> col)
+            } else {
+              col = result(target)
+            }
+            predict.getOrElse(r, List.empty).foreach { f =>
+              if (!col.contains(f._2)) {
+                col += f._2
+              } else if (!col.contains(f._1.left)) {
+                col += f._1.left
+              } else ()
+            }
           }
-        case _ => Set.empty[String]
-      }.toSet
 
-      val intermediateResult =
-        if (followsToAdd.nonEmpty) addFollows(acc, rule.right.last, Set(rule.left))
-        else acc
+          j += 1
+        }
 
-      if (cfg.isNonTerminal(rule.right.last)) {
-        addFollows(intermediateResult, rule.right.last, Set(rule.left))
+        var rr = rule.right.toVector(jc - 1)
+        if (cfg.isNonTerminal(rr)) {
+          if (!result.contains(rr)) {
+            col = mutable.Set[String]()
+            result += (rr -> col)
+          } else {
+            col = result(rr)
+          }
+          if (!col.contains(rule.left)) {
+            col += rule.left
+          } else ()
+        }
       } else {
-        intermediateResult
+        if (!result.contains(rule.left)) {
+          col = mutable.Set[String]()
+          result += (rule.left -> col)
+        } else {
+          col = result(rule.left)
+        }
+        if (!col.contains(rule.left)) {
+          col += rule.left
+        } else ()
       }
     }
-
-    Iterator
-      .iterate(updatedResult) { currentResult =>
-        currentResult.map { case (key, value) =>
-          key -> value.flatMap(item => if (cfg.isNonTerminal(item)) currentResult.getOrElse(item, Set()) else Set(item))
+    var done = false
+    while (!done) {
+      done = true
+      result.foreach { kv =>
+        var found = false
+        kv._2.foreach { item =>
+          if (!found && cfg.isNonTerminal(item)) {
+            done = false
+            kv._2 -= item
+            result.getOrElse(item, mutable.Set.empty).foreach { f =>
+              kv._2 += f
+            }
+            found = true
+          }
         }
       }
-      .sliding(2)
-      .find(pair => pair.head == pair.last)
-      .getOrElse(Seq(updatedResult))
-      .lastOption
-      .getOrElse(Map.empty)
+    }
+    result.map(kv => (kv._1, kv._2.toSet - Eps)).toMap
+  }
+
+  def toParseTable(cfg: CFG): Map[String, Map[String, Rule]] = {
+    var result = mutable.Map[String, mutable.Map[String, Rule]]()
+    cfg.nonTerminals.foreach { nt =>
+      var d = mutable.Map[String, Rule]()
+      cfg.predictSet(nt).foreach { f =>
+        if (f._2 != Eps) {
+          d += (f._2 -> f._1)
+        } else {
+          var ff = cfg.followSet(nt)
+          ff.foreach { fe =>
+            d += (fe -> f._1)
+          }
+        }
+      }
+      result += (nt -> d)
+    }
+    result.map(kv => (kv._1, kv._2.toMap)).toMap
   }
 }
