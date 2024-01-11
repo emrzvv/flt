@@ -1,159 +1,174 @@
 package grammar
 
-import utils.CommonUtils.{EOL, Eps, StringOps}
+import utils.CommonUtils.{EOL, Eps}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
-case class CFG(equations: Map[String, Set[String]] = Map.empty,
-               nonTerminals: Set[String] = Set.empty,
-               terminals: Set[String] = Set.empty,
-               first: Map[String, Set[String]] = Map.empty,
-               follow: Map[String, Set[String]] = Map.empty,
-               initialState: String = "") {
-  def isNonTerminal(symbol: Char): Boolean = nonTerminals.contains(symbol.toString)
+case class CFG(
+              startSymbol: String = "",
+              rules: List[Rule] = List.empty,
+              nonTerminals: Set[String] = Set.empty,
+              terminals: Set[String] = Set.empty
+              ) {
+  def isNonTerminal(symbol: String): Boolean = nonTerminals.contains(symbol)
+  def isTerminal(symbol: String): Boolean = terminals.contains(symbol)
 
-  def isTerminal(symbol: Char): Boolean = terminals.contains(symbol.toString)
-
-  def prettyToString: String = ???
+  lazy val predictSet: Map[String, List[(Rule, String)]] = CFG.computePredictSet(this)
+  lazy val followSet: Map[String, Set[String]] = CFG.computeFollowSet(this)
 }
 
 object CFG {
-  private def isNonTerminal(symbol: Char): Boolean = 'A' <= symbol && symbol <= 'Z'
-
-  def apply(raw: String): CFG = {
-    CFG.apply(raw.split("\n").toVector)
+  def apply(rawGrammar: String): CFG = {
+    val newLineRules = rawGrammar.split("\n").map(_.trim)
+    val rules = newLineRules.flatMap { line =>
+      val (from, to) = (line.split("->")(0).trim, line.split("->")(1).split("\\|").map(_.trim))
+      to.map(rule => from + " -> " + rule)
+    }.toVector
+    println(rules)
+    apply(rules)
   }
 
-  def apply(rawEquations: Vector[String]): CFG = {
+  def apply(rawRules: Vector[String]): CFG = {
 
     @tailrec
-    def init(equations: Vector[String], cfg: CFG = CFG()): CFG = {
-      if (equations.isEmpty) cfg
+    def init(rules: Vector[String], cfg: CFG = CFG()): CFG = {
+      if (rules.isEmpty) cfg
       else {
-        val splitted: Seq[String] = equations.head.split("->").map(_.trim)
-        val from = splitted.head.trim
-        val to = splitted.tail.head.split("\\|").map(_.trim)
+        val splitted: Seq[String] = rules.head.split("->").map(_.trim)
+        val left = splitted.head.trim
+        val right = splitted.tail.head.split(" ").map(_.trim).toList
 
-        val _equations = cfg.equations + (from -> (cfg.equations.getOrElse(from, Set.empty) ++ to.toSet))
-        val _nonTerminals = cfg.nonTerminals + from
-        val _first  = cfg.first + (from -> Set.empty[String])
-        val _follow = cfg.follow + (from -> Set.empty[String])
-        val _terminals = cfg.terminals ++ to.flatMap(_.filterNot(isNonTerminal).map(_.toString)).toSet
-        val _initialState = if (cfg.initialState.isEmpty) from else cfg.initialState
+        val _rules = Rule(left, right) +: cfg.rules
+        val _startSymbol = if (cfg.startSymbol.isEmpty) left else cfg.startSymbol
 
-        init(equations.tail, CFG(_equations, _nonTerminals, _terminals, _first, _follow, _initialState))
+        init(rules.tail, CFG(_startSymbol, _rules))
       }
     }
 
-    val initializedCFG: CFG = init(rawEquations) // TODO: normalize grammar
-//    computeFollowSet(computeFirstSet(initializedCFG))
-    computeFirstSet(initializedCFG)
+    def fillNonTerminals(cfg: CFG): CFG = {
+      val nonTerminals = cfg.rules.map { _.left}.toSet
+      cfg.copy(nonTerminals = nonTerminals)
+    }
+
+    def fillTerminals(cfg: CFG): CFG = {
+      val terminals = cfg.rules.flatMap { _.right.filterNot(cfg.isNonTerminal) }.toSet + EOL
+      cfg.copy(terminals = terminals)
+    }
+
+    val initializedCFG = init(rawRules)
+    fillTerminals(fillNonTerminals(initializedCFG))
   }
 
-  private def computeFirstSet(cfg: CFG): CFG = {
+  def computePredictSet(cfg: CFG): Map[String, List[(Rule, String)]] = {
     @tailrec
-    def loop(nonTerminals: Vector[String], first: Map[String, Set[String]] = Map.empty): Map[String, Set[String]] = {
-      if (nonTerminals.isEmpty) {
-        first
+    def addTerminals(terminals: List[String], result: Map[String, List[(Rule, String)]]): Map[String, List[(Rule, String)]] = {
+      if (terminals.isEmpty) {
+        result
       } else {
-        val currentNT = nonTerminals.head
-        loop(nonTerminals.tail, first + (currentNT -> getFirst(currentNT)))
+        val l = List((Rule("", List.empty, isEmpty = true), terminals.head))
+        addTerminals(terminals.tail, result + (terminals.head -> l))
       }
     }
 
-    def getFirst(current: String): Set[String] = {
-      val currentSymbol: Char = current.head
-
-      if (cfg.isNonTerminal(currentSymbol)) {
-        val productions = cfg.equations(currentSymbol.toString)
-        productions.flatMap { production =>
-          if (production.isEps) {
-            if (production.length > 1) {
-              getFirst(current.substring(1))
-            } else {
-              Set(Eps)
-            }
-          } else {
-            val decomposition: Vector[String] = production.map(_.toString).toVector
-            println(decomposition)
-            println(s"NONTERMINAL: ${currentSymbol}")
-            val possibleFirst = getFirst(decomposition(0))
-            val condition1: Set[String] = if (possibleFirst.contains(Eps) && decomposition.length > 1) { // TODO: case when decomposition == 1?
-              (possibleFirst - Eps) ++ getFirst(decomposition(1))
-            } else possibleFirst
-            val condition2: Set[String] = if (decomposition.map(getFirst).forall(_.contains(Eps))) { // TODO: memoization
-              Set(Eps)
-            } else Set.empty[String]
-
-            condition1 ++ condition2
-          }
-        }
-      } else if (cfg.isTerminal(currentSymbol)) {
-        Set(currentSymbol.toString)
-      } else {
-        throw new Exception(s"error when constructing first set: unknown symbol `${current}``")
-      }
-    }
-
-    cfg.copy(first = loop(cfg.nonTerminals.toVector))
-  }
-
-  private def computeFollowSet(cfg: CFG): CFG = {
-
     @tailrec
-    def loop(nonTerminals: Vector[String], follow: Map[String, Set[String]] = Map.empty): Map[String, Set[String]] = {
-       if (nonTerminals.isEmpty) {
-         follow
-       } else {
-         val currentNT = nonTerminals.head
-         loop(nonTerminals.tail, follow ++ getFollows(currentNT))
-       }
-    }
-
-    def getFollows(current: String): Map[String, Set[String]] = {
-      if (current.length > 1) {
-        Map.empty // TODO: logging
+    def addRhs(rules: List[Rule], result: Map[String, List[(Rule, String)]]): Map[String, List[(Rule, String)]] = {
+      if (rules.isEmpty) {
+        result
       } else {
-        val currentNT = current.head
-        val productions = cfg.equations(current)
-        if (cfg.initialState == current) { // first rule
-          Map(current -> Set(EOL))
+        val rule = rules.head
+        val newResult = if (!result.contains(rule.left)) {
+          result + (rule.left -> List.empty[(Rule, String)])
+        } else result
+        val currentCol = newResult(rule.left)
+        val colToAdd = if (!rule.isEpsRule) {
+          val e = (rule, rule.right.head)
+          if (!currentCol.contains(e)) {
+            e +: currentCol
+          } else currentCol
         } else {
-          val foundFollows = productions.flatMap { production =>
-             finder(currentNT.toString, production)
-          }
-          println(foundFollows) // boobies
-          foundFollows reduce (_ ++ _)
+          val e = (rule, Eps)
+          if (!currentCol.contains(e)) {
+            e +: currentCol
+          } else currentCol
+        }
+        addRhs(rules.tail, newResult + (rule.left -> colToAdd))
+      }
+    }
+
+    @tailrec
+    def resolveFirstForNonTerminals(result: Map[String, List[(Rule, String)]]): Map[String, List[(Rule, String)]] = {
+      val updatedResult = result.foldLeft(result) {
+        case (acc, (key, value)) => value.foldLeft(acc) {
+          case (innerAcc, (rule, symbol)) =>
+            if (cfg.isNonTerminal(symbol)) {
+              val updatedList = (innerAcc.getOrElse(key, List.empty).toSet - ((rule, symbol))).toList // cringe
+              val additionalList = (result.getOrElse(symbol, List.empty))
+              innerAcc.updated(key, updatedList.concat(additionalList))
+            } else {
+              innerAcc
+            }
         }
       }
+      if (updatedResult == result) {
+        updatedResult
+      } else {
+        resolveFirstForNonTerminals(updatedResult)
+      }
     }
 
-    def finder(from: String, production: String): Seq[Map[String, Set[String]]] = {
-      val nonTerminalsPositions = production.zipWithIndex.filter(ci => isNonTerminal(ci._1)) // get idxs of all NT in production
-      val foundFollows1 = nonTerminalsPositions.map { ci =>
-        val (alpha, beta, nonTerminal) = (production.take(ci._2), production.drop(ci._2 + 1), ci._1.toString)
-        (alpha, beta, nonTerminal)
-      }.filter(x => x._2.nonEmpty).map {
-        case (_: String, beta: String, nonTerminal: String) =>
-          if (cfg.isNonTerminal(beta.head)) {
-            val betaFirst = cfg.first.getOrElse(beta.head.toString, Set.empty[String])
-            val currentFollow = cfg.follow.getOrElse(nonTerminal, Set.empty[String])
-            if (betaFirst.contains(Eps)) {
-              Map(nonTerminal -> (currentFollow ++ (betaFirst - Eps) ++ cfg.follow.getOrElse(from, Set.empty[String])))
-            } else {
-              Map(nonTerminal -> (currentFollow ++ betaFirst))
-            }
-          } else {
-            val currentFollow = cfg.follow.getOrElse(nonTerminal, Set.empty[String])
-            Map(nonTerminal -> (currentFollow + beta.head.toString))
+    val r1 = addTerminals(cfg.terminals.toList, Map.empty)
+    val r2 = addRhs(cfg.rules, r1)
+    val r3 = resolveFirstForNonTerminals(r2)
+    r3
+  }
+
+  def computeFollowSet(cfg: CFG): Map[String, Set[String]] = {
+    val predict: Map[String, List[(Rule, String)]] = cfg.predictSet
+
+    def addFollows(result: Map[String, Set[String]], target: String, follows: Set[String]): Map[String, Set[String]] = {
+      result + (target -> (result.getOrElse(target, Set()) ++ follows))
+    }
+
+    def transformId(id: String): String = { // S => S'
+      val transformedId =
+        Iterator.iterate(id)(_ + "'").find(!(cfg.terminals ++ cfg.nonTerminals).contains(_)).get
+      transformedId
+    }
+
+    val rules = Rule(transformId(cfg.startSymbol), right = List(cfg.startSymbol, EOL)) +: cfg.rules
+    val result = Map.empty[String, Set[String]]
+    val updatedResult = rules.foldLeft(result) { (acc, rule) =>
+      val followsToAdd = rule.right.sliding(2).flatMap {
+        case List(r, target) if cfg.isNonTerminal(target) =>
+          predict(r).flatMap {
+            case (r, s) if (s != Eps) => Set(s)
+            case (r, s) if (s == Eps) => Set(r.left)
           }
+        case _ => Set.empty[String]
+      }.toSet
+
+      val intermediateResult =
+        if (followsToAdd.nonEmpty) addFollows(acc, rule.right.last, Set(rule.left))
+        else acc
+
+      if (cfg.isNonTerminal(rule.right.last)) {
+        addFollows(intermediateResult, rule.right.last, Set(rule.left))
+      } else {
+        intermediateResult
       }
-      val foundFollows2 = nonTerminalsPositions.filter(_._2 == production.length -1).map { ci =>
-        Map(ci._1.toString -> cfg.follow.getOrElse(from, Set.empty[String]))
-      }
-      foundFollows1 ++: foundFollows2
     }
 
-    cfg.copy(follow = loop(cfg.nonTerminals.toVector))
+    Iterator
+      .iterate(updatedResult) { currentResult =>
+        currentResult.map { case (key, value) =>
+          key -> value.flatMap(item => if (cfg.isNonTerminal(item)) currentResult.getOrElse(item, Set()) else Set(item))
+        }
+      }
+      .sliding(2)
+      .find(pair => pair.head == pair.last)
+      .getOrElse(Seq(updatedResult))
+      .lastOption
+      .getOrElse(Map.empty)
   }
 }
