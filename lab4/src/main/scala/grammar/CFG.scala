@@ -17,6 +17,8 @@ case class CFG(
 
   lazy val predictSet: Map[String, List[(Rule, String)]] = CFG.computePredictSet(this)
   lazy val followSet: Map[String, Set[String]] = CFG.computeFollowSet(this)
+
+  lazy val terms: Set[String] = nonTerminals ++ terminals
 }
 
 object CFG {
@@ -33,8 +35,9 @@ object CFG {
 
     @tailrec
     def init(rules: Vector[String], cfg: CFG = CFG()): CFG = {
-      if (rules.isEmpty) cfg
-      else {
+      if (rules.isEmpty) {
+        cfg
+      } else {
         val splitted: Seq[String] = rules.head.split("->").map(_.trim)
         val left = splitted.head.trim
         val right = splitted.tail.head.split(" ").map(_.trim).toList
@@ -58,6 +61,24 @@ object CFG {
 
     val initializedCFG = init(rawRules)
     fillTerminals(fillNonTerminals(initializedCFG))
+  }
+
+  private def transformId(cfg: CFG, id: String): String = {
+    var iid = id
+    var i = 1
+    val symbols = cfg.terms
+    var it = true
+    var s = ""
+    while (it) {
+      s = iid + "'"
+      if (!symbols.contains(s)) {
+        it = false
+      } else {
+        i += 1
+        iid = id + i.toString
+      }
+    }
+    s
   }
 
   def computePredictSet(cfg: CFG): Map[String, List[(Rule, String)]] = {
@@ -130,25 +151,7 @@ object CFG {
       result + (target -> (result.getOrElse(target, Set()) ++ follows))
     }
 
-    def transformId(id: String): String = {
-      var iid = id
-      var i = 1
-      val symbols = cfg.nonTerminals ++ cfg.terminals
-      var it = true
-      var s = ""
-      while (it) {
-        s = iid + "'"
-        if (!symbols.contains(s)) {
-          it = false
-        } else {
-          i += 1
-          iid = id + i.toString
-        }
-      }
-      s
-    }
-
-    val rules = Rule(transformId(cfg.startSymbol), right = List(cfg.startSymbol, EOL)) +: cfg.rules
+    val rules = Rule(transformId(cfg, cfg.startSymbol), right = List(cfg.startSymbol, EOL)) +: cfg.rules
     val result = mutable.Map.empty[String, mutable.Set[String]]
     var col = mutable.Set.empty[String]
     rules.foreach { rule =>

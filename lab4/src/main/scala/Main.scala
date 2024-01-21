@@ -2,6 +2,7 @@ import grammar.CFG.toParseTable
 import grammar.{CFG, CFGTEST}
 import utils.Control.using
 
+import scala.collection.mutable
 import scala.io.Source
 
 object Main {
@@ -16,6 +17,11 @@ object Main {
         pprint.pprintln(cfg.predictSet)
         pprint.pprintln(cfg.followSet)
         pprint.pprintln(toParseTable(cfg))
+
+        val parser: LL1Parser = LL1Parser(toParseTable(cfg), cfg.terminals, mutable.ArrayDeque[Node]())
+        val result = Tree.apply(parser, "i+i+i+i")
+
+        pprint.pprintln(result)
       }
     }
 
