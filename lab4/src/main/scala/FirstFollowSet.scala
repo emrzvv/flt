@@ -1,3 +1,4 @@
+import scala.annotation.tailrec
 
 sealed trait FirstElement {
   val name: String
@@ -38,6 +39,7 @@ case class Firsts(firsts: Map[String, Set[FirstElement]]) {
 
 object Firsts {
 
+  @tailrec
   private def processRule(elements: List[Element],
                           firsts: Map[String, Set[FirstElement]],
                           current: Set[FirstElement]): Set[FirstElement] = {
@@ -66,6 +68,7 @@ object Firsts {
 
 object Follows {
 
+  @tailrec
   private def processRule(name: String, elements: List[Element],
                           firsts: Firsts,
                           follows: Map[String, Set[FollowElement]]): Map[String, Set[FollowElement]] = {
@@ -85,7 +88,7 @@ object Follows {
     }
   }
 
-  def apply(grammar: CFG, firsts: Firsts) = {
+  def apply(grammar: CFG, firsts: Firsts): Map[String, Set[FollowElement]] = {
     def processRules(initialFollows: Map[String, Set[FollowElement]]) = {
       grammar.rules.foldLeft(initialFollows) { case (follows, rule) =>
         processRule(rule.name, rule.elements.toList, firsts, follows)

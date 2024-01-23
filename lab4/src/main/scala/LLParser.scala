@@ -21,7 +21,7 @@ object LLParser {
         Seq()
       }
       linesFromFirsts ++ linesFromFollows
-    }).groupBy(_._1).view.mapValues(_.map(_._2).toMap) // check for conflicts in mapping
+    }).groupBy(_._1).view.mapValues(_.map(_._2).toMap) // check for conflicts in mapping. if conflict - cfg is not ll(1)
 
     new LLParser(grammar.start, table.toMap)
   }
@@ -31,7 +31,8 @@ case class Node(value: Element,
                 parent: Option[Node] = None,
                 children: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer(),
                 var position: Int = -1,
-                var index: Int = -1) {
+                var index: Int = -1,
+                isCopied: Boolean = false) {
   def addChild(child: Node): Unit = children += child
 
   def rightSibling(): Option[Node] = {
@@ -89,7 +90,7 @@ class LLParser(start: String,
 
     val q = mutable.ArrayDeque[Node]()
     var i = 1
-    while (deque.nonEmpty) {
+    while (deque.nonEmpty && i <= input.length) {
       println(s"[DEQUE]: ${deque.map(_.value.name)}")
       println(inputBuffer)
       val currentNode = deque.removeHead()
@@ -174,12 +175,48 @@ class LLParser(start: String,
     Some(rootNode)
   }
 
-  def incrementalParseToTree(w0: List[String], T0: Node, w1: List[String], isGreedy: Boolean): Node = {
-    ???
+  def incrementalParseToTree(w0: List[String], T0: Node, w1: List[String], isGreedy: Boolean = false): Node = {
+    val deque = mutable.ArrayDeque[Node]()
+
+    val prefixLength = getCommonPrefixLength(w0.toVector, w1.toVector)
+    val suffixLength = getCommonPrefixLength(w0.toVector.reverse, w1.toVector.reverse)
+
+    println(s"PREFIX LENGTH: ${prefixLength}")
+    println(s"SUFFIX LENGTH: ${suffixLength}")
+
+    val T1: Node = if (prefixLength == 0) {
+      Node(NonTerm(start))
+    } else {
+      copyTree(prefixLength, T0, T0.parent, deque)
+    }
+
+    T1
   }
 
-  private def getCommonPrefix(w0: List[String], w1: List[String]): List[String] = {
-    ???
+  private def getCommonPrefixLength(w0: Vector[String], w1: Vector[String]): Int = {
+    w0.zip(w1).takeWhile(w => w._1 == w._2).length
+  }
+
+  private def copyTree(toPos: Int, from: Node, parent: Option[Node], deque: mutable.ArrayDeque[Node]): Node = {
+    val newNode = Node(
+      value = from.value,
+      parent = parent,
+      children = mutable.ArrayBuffer[Node](),
+      position = from.position,
+      index = from.index,
+      isCopied = true
+    )
+
+    if (from.position > toPos || from.position == -1) {
+      newNode.position = -1
+      deque += newNode
+      newNode
+    } else {
+      for (child <- from.children) {
+        newNode.children += copyTree(toPos, child, Some(newNode), deque)
+      }
+      newNode
+    }
   }
 }
 
