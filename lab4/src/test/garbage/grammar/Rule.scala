@@ -1,6 +1,4 @@
-package grammar
-
-import utils.CommonUtils.Eps
+package garbage.grammar
 
 //sealed trait Rule
 case class Rule(left: String, right: List[String] = List.empty, isEmpty: Boolean = false) {

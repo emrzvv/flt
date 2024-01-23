@@ -1,3 +1,5 @@
+package garbage
+
 import scala.collection.mutable.ArrayBuffer
 
 case class Node(name: String,

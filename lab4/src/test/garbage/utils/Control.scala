@@ -1,4 +1,4 @@
-package utils
+package garbage.utils
 
 import scala.language.reflectiveCalls
 

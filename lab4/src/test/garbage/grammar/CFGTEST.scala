@@ -1,6 +1,4 @@
-package grammar
-
-import utils.CommonUtils.{EOL, Eps, StringOps}
+package garbage.grammar
 
 import scala.annotation.tailrec
 

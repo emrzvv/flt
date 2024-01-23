@@ -1,4 +1,5 @@
-import grammar.Rule
+package garbage
+
 
 import scala.collection.mutable
 

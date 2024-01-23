@@ -1,29 +1,26 @@
-import grammar.CFG.toParseTable
-import grammar.{CFG, CFGTEST}
-import utils.Control.using
-
 import scala.collection.mutable
-import scala.io.Source
 
 object Main {
-  def main(args: Array[String]): Unit = {
-    if (args.length > 0) {
-      val input = args(0)
-      using(Source.fromFile(input)) { source =>
-        val rawGrammar = source.getLines().mkString("\n")
-        val cfg = CFG(rawGrammar)
+  def main(args: Array[String]) {
+    val grammar = CFG("S", Set(
+      Rule("S", Seq(Term("a"), NonTerm("A"), NonTerm("B"), Term("b"))),
+      Rule("A", Seq(Term("c"))),
+      Rule("A", Seq()),
+      Rule("B", Seq(Term("d"))),
+      Rule("B", Seq())
+    ))
+//    val parser = LLParser(grammar)
+//
 
-        pprint.pprintln(cfg)
-        pprint.pprintln(cfg.predictSet)
-        pprint.pprintln(cfg.followSet)
-        pprint.pprintln(toParseTable(cfg))
 
-        val parser: LL1Parser = LL1Parser(toParseTable(cfg), cfg.terminals, mutable.ArrayDeque[Node]())
-        val result = Tree.apply(parser, "i+i+i+i")
+    val firsts: Firsts = Firsts(grammar)
+    val follows = Follows(grammar, firsts)
 
-        pprint.pprintln(result)
-      }
-    }
-
+    pprint.pprintln(firsts)
+    pprint.pprintln(follows)
+    pprint.pprintln(LLParser(grammar).table)
+//    pprint.pprintln(LLParser(grammar).parseToTree(List("a", "d", "b")))
+    val res = LLParser(grammar).parseToTree(List("a", "d", "b"), 0)
+    Node.printTree(res.get)
   }
 }

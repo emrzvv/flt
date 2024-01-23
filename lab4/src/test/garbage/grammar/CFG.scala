@@ -1,6 +1,4 @@
-package grammar
-
-import utils.CommonUtils.{EOL, Eps}
+package garbage.grammar
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -45,7 +43,7 @@ object CFG {
         val _rules = Rule(left, right) +: cfg.rules
         val _startSymbol = if (cfg.startSymbol.isEmpty) left else cfg.startSymbol
 
-        init(rules.tail, CFG(_startSymbol, _rules))
+        init(rules.tail, grammar.CFG(_startSymbol, _rules))
       }
     }
 
@@ -151,7 +149,7 @@ object CFG {
       result + (target -> (result.getOrElse(target, Set()) ++ follows))
     }
 
-    val rules = Rule(transformId(cfg, cfg.startSymbol), right = List(cfg.startSymbol, EOL)) +: cfg.rules
+    val rules = cfg.rules
     val result = mutable.Map.empty[String, mutable.Set[String]]
     var col = mutable.Set.empty[String]
     rules.foreach { rule =>
