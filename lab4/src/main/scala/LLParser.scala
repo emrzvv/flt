@@ -45,13 +45,15 @@ case class Node(value: Element,
     }
   }
 
-  @tailrec
-  final def pushPosition(pos: Int): Unit = {
-    this.position = pos
-    if (this.parent.exists(_.position != -1)) {
-      this.parent.get.pushPosition(pos)
-    }
-  }
+//  @tailrec
+//  final def pushPosition(pos: Int): Unit = {
+//    this.position = pos
+//    if (this.parent.exists(_.position != -1)) {
+//      this.parent.get.pushPosition(pos)
+//    }
+//  }
+
+
 
   def deduceNodePosition(): Int = {
     if (this.position != -1) this.position
@@ -60,7 +62,7 @@ case class Node(value: Element,
       rightSibling match {
         case Some(rs) =>
           val result = rs.deduceNodePosition()
-          this.pushPosition(result)
+          Node.pushPosition(this, result)
           result
         case None => -1
       }
@@ -71,8 +73,17 @@ case class Node(value: Element,
 object Node {
   def printTree(node: Node, depth: Int = 0): Unit = {
     println("  " * depth + node.value + s"index: ${node.index}; position: ${node.position}")
-    for (child <- node.children.reverse) {
+    for (child <- node.children) {
       printTree(child, depth + 1)
+    }
+  }
+
+  def pushPosition(node: Node, pos: Int): Unit = {
+    var current = node
+    current.position = pos
+    while (current.parent.isDefined && current.parent.get.position == -1) {
+      current = current.parent.get
+      current.position = pos
     }
   }
 }
@@ -97,7 +108,7 @@ class LLParser(start: String,
       currentNode.value match {
         case Term(value) =>
           if (value != Epsilon.name) {
-            currentNode.pushPosition(i + lastParsedPos)
+            Node.pushPosition(currentNode, i + lastParsedPos)
             i += 1
             if (value == EndMarker.name) {
               return Some(rootNode)
