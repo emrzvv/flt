@@ -36,24 +36,15 @@ case class Node(value: Element,
   def addChild(child: Node): Unit = children += child
 
   def rightSibling(): Option[Node] = {
-    if (parent.isEmpty) {
-      None
-    } else if (parent.exists(_.children.length - 1 == this.index)) {
-      parent.flatMap(_.rightSibling())
-    } else {
-      parent.map(_.children(this.index + 1))
+    parent.flatMap { parentNode =>
+      val siblings = parentNode.children
+      if (siblings.nonEmpty && index < siblings.length - 1) {
+        Some(siblings(index + 1))
+      } else {
+        parentNode.rightSibling()
+      }
     }
   }
-
-//  @tailrec
-//  final def pushPosition(pos: Int): Unit = {
-//    this.position = pos
-//    if (this.parent.exists(_.position != -1)) {
-//      this.parent.get.pushPosition(pos)
-//    }
-//  }
-
-
 
   def deduceNodePosition(): Int = {
     if (this.position != -1) this.position
@@ -61,6 +52,7 @@ case class Node(value: Element,
       val rightSibling = this.rightSibling()
       rightSibling match {
         case Some(rs) =>
+          println(s"right sibling to ${this.value.name} (${position}, ${index}) is ${rs.value.name} (${rs.position}, ${rs.index})")
           val result = rs.deduceNodePosition()
           Node.pushPosition(this, result)
           result
@@ -90,20 +82,30 @@ object Node {
 
 class LLParser(start: String,
                val table: Map[String, Map[String, Rule]]) {
+  private def deduceEpsNodesPositions(nodes: mutable.ArrayDeque[Node]): Unit = {
+    nodes.foreach(n => println(n.value, n.parent.get.value, n.parent.get.parent.get.position, n.position, n.index))
+    while (nodes.nonEmpty) {
+      val removed = nodes.removeHead()
+      println(removed.value, removed.parent.get.value, removed.parent.get.parent.get.position, removed.position, removed.index)
+      println(removed.deduceNodePosition())
+    }
+  }
 
-  def parseToTree(input: List[String], lastParsedPos: Int): Option[Node] = {
+
+  def parseToTree(input: List[String], lastParsedPos: Int, parseLength: Int = Int.MaxValue): Option[Node] = {
     val deque = mutable.ArrayDeque[Node]()
     val inputBuffer = mutable.Queue(input: _*)
-    val rootNode = Node(NonTerm(start))
+    val rootNode = Node(NonTerm(start), index = 0)
 
-//    stack.push(Term(EndMarker.name))
     deque += rootNode
 
-    val q = mutable.ArrayDeque[Node]()
+    val epsNodes = mutable.ArrayDeque[Node]()
     var i = 1
-    while (deque.nonEmpty && i <= input.length) {
+    while (deque.nonEmpty && i <= parseLength) {
+      println("=========")
       println(s"[DEQUE]: ${deque.map(_.value.name)}")
-      println(inputBuffer)
+      println(s"[INPUT]: ${inputBuffer}")
+      Node.printTree(rootNode)
       val currentNode = deque.removeHead()
       currentNode.value match {
         case Term(value) =>
@@ -111,12 +113,14 @@ class LLParser(start: String,
             Node.pushPosition(currentNode, i + lastParsedPos)
             i += 1
             if (value == EndMarker.name) {
+              deduceEpsNodesPositions(epsNodes)
               return Some(rootNode)
             }
             println(s"adding term: ${value}")
             inputBuffer.dequeue()
           } else if (currentNode.parent.exists(_.children.length == 1)) {
-            q += currentNode
+            println("adding eps")
+            epsNodes += currentNode
           }
         case NonTerm(value) =>
           println(s"${currentNode.value.name} -- ${inputBuffer.head}")
@@ -126,12 +130,14 @@ class LLParser(start: String,
             throw new Exception("word is not in the language")
           }
 
+          val updatedNextStack = if (nextStack.elements.isEmpty) {
+            nextStack.copy(elements = Seq(Term(Epsilon.name)))
+          } else nextStack
+
           val buffer = mutable.ArrayBuffer[Node]()
 
-          for (symbol <- nextStack.elements.reverse) {
-            val newNode = Node(symbol, Some(currentNode), index = i)
-
-            // newNode.index = i
+          for ((symbol, j) <- updatedNextStack.elements.zipWithIndex.reverse) {
+            val newNode = Node(symbol, Some(currentNode), index = j)
             buffer += newNode
             deque.prepend(newNode)
           }
@@ -139,49 +145,9 @@ class LLParser(start: String,
           for (b <- buffer.reverse) {
             currentNode.children += b
           }
-//          val parentNode = Node(currentSymbol.name)
-//          println(s"[CURRENT PARENT]: ${currentParent}")
-//          println(s"PARENT NODE: ${parentNode}")
-//          println(s"RULE: $rule")
-//
-//          if (rule.elements.isEmpty) { // eps
-//            parentNode.addChild(Node(Epsilon.name))
-//          } else {
-//            for (symbol <- rule.elements.reverse) {
-//              stack.push(symbol)
-//            }
-//          }
-//
-//          println(s"NEW STACK: ${stack}")
-//          println()
-//
-//          currentParent.addChild(parentNode)
-//          var finish = false
-//          while (stack.nonEmpty && !finish) {
-//            stack.top match {
-//              case Term(value) => {
-//                finish = true
-//                if (value == Epsilon.name) {
-//                  val epsNode = Node(stack.pop().name)
-//                  parentNode.addChild(epsNode)
-//                  currentParent.addChild(parentNode)
-//                } else {
-//                  currentParent.addChild(parentNode)
-//                  currentParent = parentNode
-//                }
-//              }
-//              case NonTerm(value) =>
-//                val ntNode = Node(stack.pop().name)
-//                currentParent.addChild(ntNode)
-//                currentParent = ntNode
-//            }
-//          }
       }
     }
-
-    while (q.nonEmpty) {
-      q.removeHead().deduceNodePosition()
-    }
+    deduceEpsNodesPositions(epsNodes)
 
     Some(rootNode)
   }
@@ -201,6 +167,7 @@ class LLParser(start: String,
       copyTree(prefixLength, T0, T0.parent, deque)
     }
 
+    val NmPos = w0.size - suffixLength + 1
     T1
   }
 

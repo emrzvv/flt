@@ -10,7 +10,9 @@ object Main {
 //      Rule("B", Seq())
 //    ))
 
-    val grammar = CFG("E", Set(
+    val grammar = CFG("S'", Set(
+      Rule("S'", Seq(NonTerm("S"), Term("$"))),
+      Rule("S", Seq(NonTerm("E"))),
       Rule("E", Seq(NonTerm("T"), NonTerm("Q"))),
       Rule("Q", Seq(Term("+"), NonTerm("T"), NonTerm("Q"))),
       Rule("Q", Seq()),
@@ -32,7 +34,7 @@ object Main {
 //    pprint.pprintln(LLParser(grammar).parseToTree(List("a", "d", "b")))
 //    val res = LLParser(grammar).parseToTree(List("a", "d", "b"), 0)
     val parser = LLParser(grammar)
-    val T0 = parser.parseToTree(List("i", "+", "i", "+", "i", "+", "i"), 0)
+    val T0 = parser.parseToTree(List("i", "+", "i", "+", "i", "+", "i", EndMarker.name), 0)
     val T1 = parser.incrementalParseToTree(List("i", "+", "i", "+", "i", "+", "i"), T0.get, List("i", "*", "i", "+", "i", "+", "i"))
     Node.printTree(T0.get)
     println("---------")
