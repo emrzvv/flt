@@ -34,10 +34,13 @@ object Main {
 //    pprint.pprintln(LLParser(grammar).parseToTree(List("a", "d", "b")))
 //    val res = LLParser(grammar).parseToTree(List("a", "d", "b"), 0)
     val parser = LLParser(grammar)
+    val w0 = "i+i+i+i$"
     val T0 = parser.parseToTree(List("i", "+", "i", "+", "i", "+", "i", EndMarker.name), 0)
     val T1 = parser.incrementalParseToTree(List("i", "+", "i", "+", "i", "+", "i"), T0.get, List("i", "*", "i", "+", "i", "+", "i"))
     Node.printTree(T0.get)
     println("---------")
     Node.printTree(T1)
+
+    Node.toGraphviz(T0.get, w0, "./T0_parse_tree")
   }
 }

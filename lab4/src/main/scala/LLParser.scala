@@ -1,3 +1,5 @@
+import java.io.{File, FileOutputStream, PrintWriter}
+import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.mutable
 
@@ -32,7 +34,8 @@ case class Node(value: Element,
                 children: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer(),
                 var position: Int = -1,
                 var index: Int = -1,
-                isCopied: Boolean = false) {
+                isCopied: Boolean = false,
+                uuid: UUID = UUID.randomUUID()) {
   def addChild(child: Node): Unit = children += child
 
   def rightSibling(): Option[Node] = {
@@ -60,6 +63,21 @@ case class Node(value: Element,
       }
     }
   }
+
+  private def isEpsNonTermNode: Boolean = {
+    children.size == 1 && children(0).value.name == Epsilon.name
+  }
+
+  def getNodeByPosition(pos: Int): Option[Node] = {
+    if (this.position == pos) Some(this)
+    else if (this.position > pos) None
+    else {
+      children
+        .view
+        .flatMap(_.getNodeByPosition(pos))
+        .find(result => !result.isEpsNonTermNode)
+    }
+  }
 }
 
 object Node {
@@ -77,6 +95,33 @@ object Node {
       current = current.parent.get
       current.position = pos
     }
+  }
+
+  implicit class StringOps(value: String) {
+    def quoted = s"\"$value\""
+  }
+
+  private def toGraphvizHelper(node: Node): String = {
+    val currentDefinition = s"${node.uuid.toString.quoted} [label=\"${node.value.name}\"];\n"
+    val edges = node.children.map(child => s"${node.uuid.toString.quoted} -- ${child.uuid.toString.quoted}").mkString("\n")
+    currentDefinition + edges + "\n" + node.children.map(child => toGraphvizHelper(child)).mkString("\n")
+  }
+
+  def toGraphviz(node: Node, expression: String, output: String): Unit = {
+    val pw = new PrintWriter(new FileOutputStream(new File(output)))
+    val result = toGraphvizHelper(node)
+    pw.write(
+      s"""
+         |graph \"\"
+         |{
+         |  fontname="Helvetica,Arial,sans-serif"
+         |  node [fontname="Helvetica,Arial,sans-serif"]
+         |  edge [fontname="Helvetica,Arial,sans-serif"]
+         |  label="${expression}"
+         |  ${result}
+         |}
+         |""".stripMargin)
+    pw.close()
   }
 }
 
