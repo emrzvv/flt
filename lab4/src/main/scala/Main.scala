@@ -10,32 +10,34 @@ object Main {
 //      Rule("B", Seq())
 //    ))
 
-    val grammar = CFG("S'", Set(
-      Rule("S'", Seq(NonTerm("S"), Term("$"))),
-      Rule("S", Seq(NonTerm("E"))),
-      Rule("E", Seq(NonTerm("T"), NonTerm("Q"))),
-      Rule("Q", Seq(Term("+"), NonTerm("T"), NonTerm("Q"))),
-      Rule("Q", Seq()),
-      Rule("T", Seq(NonTerm("F"), NonTerm("P"))),
-      Rule("P", Seq(Term("*"), NonTerm("F"), NonTerm("P"))),
-      Rule("P", Seq()),
-      Rule("F", Seq(Term("i"))),
-      Rule("F", Seq(Term("("), NonTerm("E"), Term(")")))
-
-    ))
+//    val grammar = CFG("S'", Set(
+//      Rule("S'", Seq(NonTerm("S"), Term("$"))),
+//      Rule("S", Seq(NonTerm("E"))),
+//      Rule("E", Seq(NonTerm("T"), NonTerm("Q"))),
+//      Rule("Q", Seq(Term("+"), NonTerm("T"), NonTerm("Q"))),
+//      Rule("Q", Seq()),
+//      Rule("T", Seq(NonTerm("F"), NonTerm("P"))),
+//      Rule("P", Seq(Term("*"), NonTerm("F"), NonTerm("P"))),
+//      Rule("P", Seq()),
+//      Rule("F", Seq(Term("i"))),
+//      Rule("F", Seq(Term("("), NonTerm("E"), Term(")")))
+//
+//    ))
 //    val parser = LLParser(grammar)
-
+    val (w0, w1, grammar) = CFG.fromFile("./input4")
     val firsts: Firsts = Firsts(grammar)
     val follows = Follows(grammar, firsts)
 
+    pprint.pprintln(grammar)
     pprint.pprintln(firsts)
     pprint.pprintln(follows)
     pprint.pprintln(LLParser(grammar).table)
+    val parser = LLParser(grammar)
 //    pprint.pprintln(LLParser(grammar).parseToTree(List("a", "d", "b")))
 //    val res = LLParser(grammar).parseToTree(List("a", "d", "b"), 0)
-    val parser = LLParser(grammar)
-    val w0 = "i+i+i+i$"
-    val w1 = "i*i+i+i$"
+//    val parser = LLParser(grammar)
+//    val w0 = "i+i+i+i$"
+//    val w1 = "i*i+i+i$"
 
     val T0 = parser.parseToTreeDefault(w0.split("").toList)
     val T1 = parser.incrementalParseToTree(w0.split("").toList, T0.get, w1.split("").toList)

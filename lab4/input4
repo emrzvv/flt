@@ -1,0 +1,11 @@
+i+i+i+i
+i*i*i+i
+
+S' -> S $
+S -> E
+E -> T Q
+Q -> + T Q
+Q -> &
+T -> F P
+P -> * F P | &
+F -> i | ( E )
