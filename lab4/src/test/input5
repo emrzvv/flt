@@ -1,0 +1,6 @@
+ba
+baaa
+S' -> S $
+S -> A
+A -> A a
+A -> b

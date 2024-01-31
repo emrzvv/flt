@@ -24,7 +24,7 @@ object Main {
 //
 //    ))
 //    val parser = LLParser(grammar)
-    val (w0, w1, grammar) = CFG.fromFile("./input4")
+    val (w0, w1, grammar) = CFG.fromFile("./src/test/input5")
     val firsts: Firsts = Firsts(grammar)
     val follows = Follows(grammar, firsts)
 

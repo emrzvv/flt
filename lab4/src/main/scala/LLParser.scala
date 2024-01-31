@@ -11,7 +11,7 @@ object LLParser {
 
     val follows = Follows(grammar, firsts)
 
-    val table = grammar.rules.flatMap(rule => {
+    val t: Set[(String, (String, Rule))] = grammar.rules.flatMap(rule => {
       val (hasEpsilon, ruleFirsts) = firsts.get(rule.elements.toList)
       val linesFromFirsts: Set[(String, (String, Rule))] = ruleFirsts.map(f => {
         rule.name -> (f, rule)
@@ -24,7 +24,16 @@ object LLParser {
         Seq()
       }
       linesFromFirsts ++ linesFromFollows
-    }).groupBy(_._1).view.mapValues(_.map(_._2).toMap) // check for conflicts in mapping. if conflict - cfg is not ll(1)
+    })
+    println("table")
+    pprint.pprintln(t.groupBy(_._1))
+
+    for ((_, rules) <- t.groupBy(_._1)) {
+      val unique = rules.map(s => (s._1, s._2._1))
+      if (unique.size != rules.size) throw new Exception("grammar is not LL(1)")
+    }
+
+    val table = t.groupBy(_._1).view.mapValues(_.map(_._2).toMap)
 
     new LLParser(grammar.start, table.toMap)
   }
