@@ -2,6 +2,7 @@ import java.io.{File, FileOutputStream, PrintWriter}
 import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 object LLParser {
 
@@ -30,7 +31,7 @@ object LLParser {
 }
 
 case class Node(value: Element,
-                parent: Option[Node] = None,
+                var parent: Option[Node] = None,
                 children: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer(),
                 var position: Int = -1,
                 var index: Int = -1,
@@ -78,6 +79,13 @@ case class Node(value: Element,
         .find(result => !result.isEpsNonTermNode)
     }
   }
+
+  def reducePosition(pos: Int): Unit = {
+    if (this.position != -1) {
+      this.position -= pos
+      this.children.foreach(child => child.reducePosition(pos))
+    }
+  }
 }
 
 object Node {
@@ -102,7 +110,8 @@ object Node {
   }
 
   private def toGraphvizHelper(node: Node): String = {
-    val currentDefinition = s"${node.uuid.toString.quoted} [label=\"${node.value.name}\"];\n"
+    val color = if (node.isCopied) ", color=green" else ""
+    val currentDefinition = s"${node.uuid.toString.quoted} [label=\"${node.value.name}\n(${node.position}, ${node.index})\"${color}];\n"
     val edges = node.children.map(child => s"${node.uuid.toString.quoted} -- ${child.uuid.toString.quoted}").mkString("\n")
     currentDefinition + edges + "\n" + node.children.map(child => toGraphvizHelper(child)).mkString("\n")
   }
@@ -137,12 +146,17 @@ class LLParser(start: String,
   }
 
 
-  def parseToTree(input: List[String], lastParsedPos: Int, parseLength: Int = Int.MaxValue): Option[Node] = {
+  def parseToTreeDefault(input: List[String]): Option[Node] = {
+    val root = Node(NonTerm(start), index = 0)
     val deque = mutable.ArrayDeque[Node]()
-    val inputBuffer = mutable.Queue(input: _*)
-    val rootNode = Node(NonTerm(start), index = 0)
+    deque += root
 
-    deque += rootNode
+    parseToTree(input, 0, Int.MaxValue, deque)
+    Some(root)
+  }
+
+  def parseToTree(input: List[String], lastParsedPos: Int, parseLength: Int = Int.MaxValue, deque: mutable.ArrayDeque[Node] = mutable.ArrayDeque()): Unit = {
+    val inputBuffer = mutable.Queue(input: _*)
 
     val epsNodes = mutable.ArrayDeque[Node]()
     var i = 1
@@ -150,7 +164,6 @@ class LLParser(start: String,
       println("=========")
       println(s"[DEQUE]: ${deque.map(_.value.name)}")
       println(s"[INPUT]: ${inputBuffer}")
-      Node.printTree(rootNode)
       val currentNode = deque.removeHead()
       currentNode.value match {
         case Term(value) =>
@@ -159,7 +172,6 @@ class LLParser(start: String,
             i += 1
             if (value == EndMarker.name) {
               deduceEpsNodesPositions(epsNodes)
-              return Some(rootNode)
             }
             println(s"adding term: ${value}")
             inputBuffer.dequeue()
@@ -193,12 +205,70 @@ class LLParser(start: String,
       }
     }
     deduceEpsNodesPositions(epsNodes)
-
-    Some(rootNode)
   }
 
-  def incrementalParseToTree(w0: List[String], T0: Node, w1: List[String], isGreedy: Boolean = false): Node = {
+  def incrementalParseToTree(w0Input: List[String], T0: Node, w1Input: List[String]): Node = {
+    @tailrec
+    def loop(NmNode: Option[Node], NmPosition: Int, NmRootPosition: Int, amountToParse: Int, lastParsedPos: Int)
+            (w1: mutable.ArrayBuffer[String])
+            (T1: Node, T0: Node)
+            (deque: mutable.ArrayDeque[Node]): Node = {
+      println("INCREMENTAL PARSING:")
+      println(s"${w1.toList}, $lastParsedPos, $amountToParse, ${deque.map(_.value.name)}")
+      parseToTree(w1.toList, lastParsedPos, amountToParse, deque)
+
+      val updatedLastParsedPos = lastParsedPos + amountToParse
+
+      if (amountToParse >= w1.size) {
+        T1
+      } else {
+        val updatedW1 = w1.slice(amountToParse, w1.size)
+        val NmRootOpt = T1.getNodeByPosition(NmRootPosition)
+        NmRootOpt match {
+          case None =>
+            throw new Exception("w1 is not in the language")
+          case Some(_NmRoot: Node) =>
+            if (NmNode.exists(_.value.name == _NmRoot.value.name)) {
+              val NmCopy = copyTree(Int.MaxValue, NmNode.get).get
+              _NmRoot.parent.get.children(_NmRoot.index) = NmCopy
+              NmCopy.parent = _NmRoot.parent
+              NmCopy.index = _NmRoot.index
+
+              val prevNmPosition = NmNode.get.position
+
+              val positionToReduce = NmCopy.position - _NmRoot.position
+              NmCopy.reducePosition(positionToReduce)
+
+              val updatedNmNode = NmNode.flatMap(_.rightSibling())
+
+              val (updatedNmPos, updatedRootPos, updatedAmountToParse) = updatedNmNode match {
+                case Some(rs) => (NmPosition + amountToParse, NmRootPosition + amountToParse, rs.position - prevNmPosition)
+                case None => (NmPosition + amountToParse, NmRootPosition + amountToParse, w1.size)
+              }
+
+              loop(
+                NmNode = updatedNmNode,
+                NmPosition = updatedNmPos,
+                NmRootPosition = updatedRootPos,
+                amountToParse = updatedAmountToParse,
+                lastParsedPos = updatedLastParsedPos
+              )(updatedW1)(T1, T0)(deque)
+            } else {
+              loop(
+                NmNode = T0.getNodeByPosition(NmPosition + 1),
+                NmPosition = NmPosition + 1,
+                NmRootPosition = NmRootPosition + 1,
+                amountToParse = 1,
+                lastParsedPos = updatedLastParsedPos)(updatedW1)(T1, T0)(deque)
+            }
+        }
+      }
+    }
+
     val deque = mutable.ArrayDeque[Node]()
+
+    var w0: mutable.ArrayBuffer[String] = ArrayBuffer.from(w0Input).dropRight(1)
+    var w1: mutable.ArrayBuffer[String] = ArrayBuffer.from(w1Input).dropRight(1)
 
     val prefixLength = getCommonPrefixLength(w0.toVector, w1.toVector)
     val suffixLength = getCommonPrefixLength(w0.toVector.reverse, w1.toVector.reverse)
@@ -209,25 +279,43 @@ class LLParser(start: String,
     val T1: Node = if (prefixLength == 0) {
       Node(NonTerm(start))
     } else {
-      copyTree(prefixLength, T0, T0.parent, deque)
+      copyTree(prefixLength, T0, deque).get
     }
 
-    val NmPos = w0.size - suffixLength + 1
-    T1
+//    deque.foreach(n => println(n.value))
+    val NmPosition = w0.size - suffixLength + 1
+    val NmNode = T0.getNodeByPosition(NmPosition)
+
+    w1 = w1.slice(prefixLength, w1.length)
+    w1 += EndMarker.name
+
+    loop(
+      NmNode = NmNode,
+      NmPosition = NmPosition,
+      NmRootPosition = w1.size - suffixLength + 1,
+      amountToParse = w1.size - suffixLength - prefixLength + 1,
+      lastParsedPos = prefixLength
+    )(w1)(T1, T0)(deque)
   }
 
   private def getCommonPrefixLength(w0: Vector[String], w1: Vector[String]): Int = {
     w0.zip(w1).takeWhile(w => w._1 == w._2).length
   }
 
-  private def copyTree(toPos: Int, from: Node, parent: Option[Node], deque: mutable.ArrayDeque[Node]): Node = {
+  private def copyTree(toPos: Int, from: Node, deque: mutable.ArrayDeque[Node] = mutable.ArrayDeque.empty): Option[Node] = {
+    if (toPos <= 0) None
+    else Some(copyTreeLoop(toPos, from, None, deque))
+  }
+
+  private def copyTreeLoop(toPos: Int, from: Node, parent: Option[Node], deque: mutable.ArrayDeque[Node] = mutable.ArrayDeque.empty): Node = {
     val newNode = Node(
       value = from.value,
       parent = parent,
       children = mutable.ArrayBuffer[Node](),
       position = from.position,
       index = from.index,
-      isCopied = true
+      isCopied = true,
+      uuid = from.uuid
     )
 
     if (from.position > toPos || from.position == -1) {
@@ -236,7 +324,7 @@ class LLParser(start: String,
       newNode
     } else {
       for (child <- from.children) {
-        newNode.children += copyTree(toPos, child, Some(newNode), deque)
+        newNode.children += copyTreeLoop(toPos, child, Some(newNode), deque)
       }
       newNode
     }
