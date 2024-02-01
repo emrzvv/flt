@@ -1,8 +1,9 @@
 i+i
 i*i
 
+S' -> S $
+S -> E
 E -> T Q
-E' -> E $
 Q -> + T Q | &
 T -> F P
 P -> * F P | &
