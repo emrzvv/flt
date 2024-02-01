@@ -25,8 +25,6 @@ object LLParser {
       }
       linesFromFirsts ++ linesFromFollows
     })
-    println("table")
-    pprint.pprintln(t.groupBy(_._1))
 
     for ((_, rules) <- t.groupBy(_._1)) {
       val unique = rules.map(s => (s._1, s._2._1))
@@ -65,7 +63,7 @@ case class Node(value: Element,
       val rightSibling = this.rightSibling()
       rightSibling match {
         case Some(rs) =>
-          println(s"right sibling to ${this.value.name} (${position}, ${index}) is ${rs.value.name} (${rs.position}, ${rs.index})")
+//          println(s"right sibling to ${this.value.name} (${position}, ${index}) is ${rs.value.name} (${rs.position}, ${rs.index})")
           val result = rs.deduceNodePosition()
           Node.pushPosition(this, result)
           result
@@ -99,7 +97,7 @@ case class Node(value: Element,
 
 object Node {
   def printTree(node: Node, depth: Int = 0): Unit = {
-    println("  " * depth + node.value + s"index: ${node.index}; position: ${node.position}")
+    println("  " * depth + node.value + s" index: ${node.index}; position: ${node.position}; copied: ${node.isCopied}")
     for (child <- node.children) {
       printTree(child, depth + 1)
     }
@@ -146,11 +144,11 @@ object Node {
 class LLParser(start: String,
                val table: Map[String, Map[String, Rule]]) {
   private def deduceEpsNodesPositions(nodes: mutable.ArrayDeque[Node]): Unit = {
-    nodes.foreach(n => println(n.value, n.parent.get.value, n.parent.get.parent.get.position, n.position, n.index))
+//    nodes.foreach(n => println(n.value, n.parent.get.value, n.parent.get.parent.get.position, n.position, n.index))
     while (nodes.nonEmpty) {
       val removed = nodes.removeHead()
-      println(removed.value, removed.parent.get.value, removed.parent.get.parent.get.position, removed.position, removed.index)
-      println(removed.deduceNodePosition())
+//      println(removed.value, removed.parent.get.value, removed.parent.get.parent.get.position, removed.position, removed.index)
+//      println(removed.deduceNodePosition())
     }
   }
 
@@ -170,9 +168,9 @@ class LLParser(start: String,
     val epsNodes = mutable.ArrayDeque[Node]()
     var i = 1
     while (deque.nonEmpty && i <= parseLength) {
-      println("=========")
-      println(s"[DEQUE]: ${deque.map(_.value.name)}")
-      println(s"[INPUT]: ${inputBuffer}")
+//      println("=========")
+//      println(s"[DEQUE]: ${deque.map(_.value.name)}")
+//      println(s"[INPUT]: ${inputBuffer}")
       val currentNode = deque.removeHead()
       currentNode.value match {
         case Term(value) =>
@@ -182,14 +180,14 @@ class LLParser(start: String,
             if (value == EndMarker.name) {
               deduceEpsNodesPositions(epsNodes)
             }
-            println(s"adding term: ${value}")
+//            println(s"adding term: ${value}")
             inputBuffer.dequeue()
           } else if (currentNode.parent.exists(_.children.length == 1)) {
-            println("adding eps")
+//            println("adding eps")
             epsNodes += currentNode
           }
         case NonTerm(value) =>
-          println(s"${currentNode.value.name} -- ${inputBuffer.head}")
+//          println(s"${currentNode.value.name} -- ${inputBuffer.head}")
           val nextStack = table(currentNode.value.name).getOrElse(inputBuffer.head, Rule("UNKNOWN", Seq.empty))
 
           if (nextStack.name == "UNKNOWN") {
@@ -222,8 +220,8 @@ class LLParser(start: String,
             (w1: mutable.ArrayBuffer[String])
             (T1: Node, T0: Node)
             (deque: mutable.ArrayDeque[Node]): Node = {
-      println("INCREMENTAL PARSING:")
-      println(s"${w1.toList}, $lastParsedPos, $amountToParse, ${deque.map(_.value.name)}")
+//      println("INCREMENTAL PARSING:")
+//      println(s"${w1.toList}, $lastParsedPos, $amountToParse, ${deque.map(_.value.name)}")
       parseToTree(w1.toList, lastParsedPos, amountToParse, deque)
 
       val updatedLastParsedPos = lastParsedPos + amountToParse
@@ -237,7 +235,11 @@ class LLParser(start: String,
           case None =>
             throw new Exception("w1 is not in the language")
           case Some(_NmRoot: Node) =>
+//            println("NMROOT")
+//            println(Node.printTree(_NmRoot))
+//            println()
             if (NmNode.exists(_.value.name == _NmRoot.value.name)) {
+//              println(s"COPYING!!!")
               val NmCopy = copyTree(Int.MaxValue, NmNode.get).get
               _NmRoot.parent.get.children(_NmRoot.index) = NmCopy
               NmCopy.parent = _NmRoot.parent
@@ -282,11 +284,13 @@ class LLParser(start: String,
     val prefixLength = getCommonPrefixLength(w0.toVector, w1.toVector)
     val suffixLength = getCommonPrefixLength(w0.toVector.reverse, w1.toVector.reverse)
 
-    println(s"PREFIX LENGTH: ${prefixLength}")
-    println(s"SUFFIX LENGTH: ${suffixLength}")
+//    println(s"PREFIX LENGTH: ${prefixLength}")
+//    println(s"SUFFIX LENGTH: ${suffixLength}")
 
     val T1: Node = if (prefixLength == 0) {
-      Node(NonTerm(start))
+      val temp = Node(NonTerm(start))
+      deque += temp
+      temp
     } else {
       copyTree(prefixLength, T0, deque).get
     }
@@ -295,14 +299,19 @@ class LLParser(start: String,
     val NmPosition = w0.size - suffixLength + 1
     val NmNode = T0.getNodeByPosition(NmPosition)
 
+    val NmRootPosition = w1.size - suffixLength + 1
+    val amountToParse = w1.size - suffixLength - prefixLength + 1
+
     w1 = w1.slice(prefixLength, w1.length)
     w1 += EndMarker.name
+
+//    println(w1.size, prefixLength, w1.size - suffixLength - prefixLength + 1)
 
     loop(
       NmNode = NmNode,
       NmPosition = NmPosition,
-      NmRootPosition = w1.size - suffixLength + 1,
-      amountToParse = w1.size - suffixLength - prefixLength + 1,
+      NmRootPosition = NmRootPosition,
+      amountToParse = amountToParse,
       lastParsedPos = prefixLength
     )(w1)(T1, T0)(deque)
   }
