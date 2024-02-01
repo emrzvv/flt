@@ -23,3 +23,37 @@ sbt compile
 sbt run ./input_test_path ./output_result_path
 ```
 
+## ЛР №4 вар. 2: Инкрементальный разбор
+На вход подаётся файл со словами w0, w1 и грамматикой. Грамматика должна иметь вид:
+```
+S' -> S $
+S -> <your_start_nonterminal>
+<your_start_nonterminal> -> ...
+```
+Сущности грамматики (терминалы и нетерминалы) в записях правил разделены пробелами. Последовательность символов считается одной сущностью, если между символами отсутствуют пробелы. 
+Слова w0 и w1 записаны в первых двух строках.
+Пример входных данных:
+```
+i+i+i+i
+i*i*i*i
+
+S' -> S $
+S -> E
+E -> T Q
+Q -> + T Q
+Q -> &
+T -> F P
+P -> * F P | &
+F -> i | ( E )
+```
+Запуск:
+```
+sbt clean
+sbt compile
+sbt run ./input_test_path
+```
+В результате работы программы также генерируются dot-файлы T0_parse_tree и T1_parse_tree.
+```
+dot -Tpng T0_parse_tree > T0_parse_tree.png
+dot -Tpng T1_parse_tree > T1_parse_tree.png
+```
