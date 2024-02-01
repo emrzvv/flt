@@ -1,6 +1,6 @@
 import java.io.{File, FileOutputStream, PrintWriter}
 import java.util.UUID
-import scala.annotation.tailrec
+import scala.annotation.{tailrec, unused}
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -149,6 +149,7 @@ class LLParser(start: String,
       val removed = nodes.removeHead()
 //      println(removed.value, removed.parent.get.value, removed.parent.get.parent.get.position, removed.position, removed.index)
 //      println(removed.deduceNodePosition())
+      removed.deduceNodePosition()
     }
   }
 
@@ -178,6 +179,8 @@ class LLParser(start: String,
             Node.pushPosition(currentNode, i + lastParsedPos)
             i += 1
             if (value == EndMarker.name) {
+//              println("EPS NODES")
+//              println(epsNodes.map(e => s"${e.value.name} - ${e.parent.map(_.value.name)}"))
               deduceEpsNodesPositions(epsNodes)
             }
 //            println(s"adding term: ${value}")
@@ -211,6 +214,7 @@ class LLParser(start: String,
           }
       }
     }
+
     deduceEpsNodesPositions(epsNodes)
   }
 
@@ -281,9 +285,12 @@ class LLParser(start: String,
     var w0: mutable.ArrayBuffer[String] = ArrayBuffer.from(w0Input).dropRight(1)
     var w1: mutable.ArrayBuffer[String] = ArrayBuffer.from(w1Input).dropRight(1)
 
-    val prefixLength = getCommonPrefixLength(w0.toVector, w1.toVector)
-    val suffixLength = getCommonPrefixLength(w0.toVector.reverse, w1.toVector.reverse)
-
+//    val prefixLength = getCommonPrefixLength(w0.toVector, w1.toVector)
+//    val suffixLength = getCommonPrefixLength(w0.toVector.slice(prefixLength, w0.size).reverse, w1.toVector.slice(prefixLength, w1.size).reverse)
+//    val suffixLength = getCommonSuffixLength(w0.toVector, w1.toVector, prefixLength)
+//    println("finding prefix")
+    val prefixLength = getCommonPrefix(w0.toVector, w1.toVector)
+    val suffixLength = getCommonSuffix(w0.toVector, w1.toVector, prefixLength)
 //    println(s"PREFIX LENGTH: ${prefixLength}")
 //    println(s"SUFFIX LENGTH: ${suffixLength}")
 
@@ -294,7 +301,8 @@ class LLParser(start: String,
     } else {
       copyTree(prefixLength, T0, deque).get
     }
-
+//    Node.printTree(T0)
+//    Node.printTree(T1)
 //    deque.foreach(n => println(n.value))
     val NmPosition = w0.size - suffixLength + 1
     val NmNode = T0.getNodeByPosition(NmPosition)
@@ -304,9 +312,6 @@ class LLParser(start: String,
 
     w1 = w1.slice(prefixLength, w1.length)
     w1 += EndMarker.name
-
-//    println(w1.size, prefixLength, w1.size - suffixLength - prefixLength + 1)
-
     loop(
       NmNode = NmNode,
       NmPosition = NmPosition,
@@ -316,8 +321,43 @@ class LLParser(start: String,
     )(w1)(T1, T0)(deque)
   }
 
+  @unused
   private def getCommonPrefixLength(w0: Vector[String], w1: Vector[String]): Int = {
-    w0.zip(w1).takeWhile(w => w._1 == w._2).length
+    val result = w0.zip(w1).takeWhile(w => w._1 == w._2).length
+    if (result == w0.length) result - 1 else result
+  }
+
+  @unused
+  private def getCommonSuffixLength(w0: Vector[String], w1: Vector[String], prefixLength: Int): Int = {
+    w0.slice(prefixLength, w0.size).reverse
+      .zip(w1.slice(prefixLength, w1.size).reverse)
+      .takeWhile(w => w._1 == w._2).length
+  }
+
+  private def getCommonSuffix(w0: Vector[String], w1: Vector[String], prefixLength: Int): Int = {
+    @tailrec
+    def loop(i: Int, j: Int, suffixLength: Int = 0): Int = {
+      if (i < prefixLength || j < prefixLength || w0(i) != w1(j)) {
+        suffixLength
+      } else {
+        loop(i - 1, j - 1, suffixLength + 1)
+      }
+    }
+
+    loop(w0.size - 1, w1.size - 1)
+  }
+
+  private def getCommonPrefix(w0: Vector[String], w1: Vector[String]): Int = {
+    @tailrec
+    def loop(prefixLength: Int = 0): Int = {
+//      println(s"current pref: ${prefixLength} for symbols ${w0(prefixLength)}, ${w1(prefixLength)}")
+      if (prefixLength == w0.size - 1 || prefixLength == w1.size || w0(prefixLength) != w1(prefixLength)) {
+        prefixLength
+      } else {
+        loop(prefixLength + 1)
+      }
+    }
+    loop()
   }
 
   private def copyTree(toPos: Int, from: Node, deque: mutable.ArrayDeque[Node] = mutable.ArrayDeque.empty): Option[Node] = {
@@ -333,7 +373,7 @@ class LLParser(start: String,
       position = from.position,
       index = from.index,
       isCopied = true,
-      uuid = from.uuid
+      uuid = UUID.randomUUID()
     )
 
     if (from.position > toPos || from.position == -1) {

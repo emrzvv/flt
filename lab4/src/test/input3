@@ -1,4 +1,11 @@
-S -> a A B b
+i+i
+i+i+i+i
+
 S' -> S $
-A -> c | &
-B -> d | &
+S -> E
+E -> T Q
+Q -> + T Q
+Q -> &
+T -> F P
+P -> * F P | &
+F -> i | ( E )
