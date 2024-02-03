@@ -4,61 +4,87 @@ graph ""
   fontname="Helvetica,Arial,sans-serif"
   node [fontname="Helvetica,Arial,sans-serif"]
   edge [fontname="Helvetica,Arial,sans-serif"]
-  label="i*i$"
-  "8d7abc56-1c88-442e-b2ad-b897779055ad" [label="S'
+  label="bbbbaaaaa$"
+  "f951fb6b-1a42-42fa-ab14-323dfb10afee" [label="S'
 (1, 0)", color=green];
-"8d7abc56-1c88-442e-b2ad-b897779055ad" -- "751148c2-46d6-4fa5-82a7-730b63a9947c"
-"8d7abc56-1c88-442e-b2ad-b897779055ad" -- "e5f3d76e-1bec-41d7-8590-b69e59182527"
-"751148c2-46d6-4fa5-82a7-730b63a9947c" [label="S
+"f951fb6b-1a42-42fa-ab14-323dfb10afee" -- "94e8370a-ea92-4c63-83ad-124990b43a75"
+"f951fb6b-1a42-42fa-ab14-323dfb10afee" -- "0653954a-ba13-4e29-af58-1e59ef0ad837"
+"94e8370a-ea92-4c63-83ad-124990b43a75" [label="S
 (1, 0)", color=green];
-"751148c2-46d6-4fa5-82a7-730b63a9947c" -- "27861022-849a-4c52-b4d4-1dfd58cd84e4"
-"27861022-849a-4c52-b4d4-1dfd58cd84e4" [label="E
+"94e8370a-ea92-4c63-83ad-124990b43a75" -- "8400afb5-e8be-41b5-83c3-089d9b4bb486"
+"8400afb5-e8be-41b5-83c3-089d9b4bb486" [label="E
 (1, 0)", color=green];
-"27861022-849a-4c52-b4d4-1dfd58cd84e4" -- "a63471a3-3e57-46ea-b6de-1e2c85826e4a"
-"27861022-849a-4c52-b4d4-1dfd58cd84e4" -- "04773803-5e79-45b9-80be-d6de5b39d5af"
-"a63471a3-3e57-46ea-b6de-1e2c85826e4a" [label="T
-(1, 0)", color=green];
-"a63471a3-3e57-46ea-b6de-1e2c85826e4a" -- "81a5bbff-6dba-404b-a082-35fbf4a00df9"
-"a63471a3-3e57-46ea-b6de-1e2c85826e4a" -- "87552694-acfc-400f-ba41-88ca5d92b01c"
-"81a5bbff-6dba-404b-a082-35fbf4a00df9" [label="F
-(1, 0)", color=green];
-"81a5bbff-6dba-404b-a082-35fbf4a00df9" -- "a222b700-f488-4aaf-b806-0ffd63e5c7e9"
-"a222b700-f488-4aaf-b806-0ffd63e5c7e9" [label="i
+"8400afb5-e8be-41b5-83c3-089d9b4bb486" -- "225310c0-6e3d-4ea1-bdd3-3934d7f4e1dc"
+"8400afb5-e8be-41b5-83c3-089d9b4bb486" -- "66ed0ad9-f959-46b2-8ed4-7d57f96ccbca"
+"8400afb5-e8be-41b5-83c3-089d9b4bb486" -- "d8b9439e-2335-4ee0-97af-f56612b089ed"
+"225310c0-6e3d-4ea1-bdd3-3934d7f4e1dc" [label="b
 (1, 0)", color=green];
 
 
-"87552694-acfc-400f-ba41-88ca5d92b01c" [label="P
+"66ed0ad9-f959-46b2-8ed4-7d57f96ccbca" [label="E
 (2, 1)", color=green];
-"87552694-acfc-400f-ba41-88ca5d92b01c" -- "1e47f8bb-2463-40be-8e25-73145d94fa80"
-"87552694-acfc-400f-ba41-88ca5d92b01c" -- "312e1b72-6ef7-4291-b916-affae96dc67b"
-"87552694-acfc-400f-ba41-88ca5d92b01c" -- "168e655a-50e0-4667-80a5-ed4d50169fd4"
-"1e47f8bb-2463-40be-8e25-73145d94fa80" [label="*
-(2, 0)"];
+"66ed0ad9-f959-46b2-8ed4-7d57f96ccbca" -- "885560f6-b050-493d-9b08-8505c999cbda"
+"66ed0ad9-f959-46b2-8ed4-7d57f96ccbca" -- "1e48744b-08eb-45e0-acb4-e8886b397c7b"
+"66ed0ad9-f959-46b2-8ed4-7d57f96ccbca" -- "5d0cba6b-8e96-4073-8b98-0bfd437bb23c"
+"885560f6-b050-493d-9b08-8505c999cbda" [label="b
+(2, 0)", color=green];
 
 
-"312e1b72-6ef7-4291-b916-affae96dc67b" [label="F
-(3, 1)"];
-"312e1b72-6ef7-4291-b916-affae96dc67b" -- "b247f4fe-4949-4428-9a5e-13226166616a"
-"b247f4fe-4949-4428-9a5e-13226166616a" [label="i
-(3, 0)"];
+"1e48744b-08eb-45e0-acb4-e8886b397c7b" [label="E
+(3, 1)", color=green];
+"1e48744b-08eb-45e0-acb4-e8886b397c7b" -- "3e46c39b-cf13-42a0-827d-e9ef53e1f458"
+"1e48744b-08eb-45e0-acb4-e8886b397c7b" -- "9595e86d-643d-462d-b89a-e7bf5599947c"
+"1e48744b-08eb-45e0-acb4-e8886b397c7b" -- "23f86e60-aaf0-48fc-819a-47f6b61a532b"
+"3e46c39b-cf13-42a0-827d-e9ef53e1f458" [label="b
+(3, 0)", color=green];
 
 
-"168e655a-50e0-4667-80a5-ed4d50169fd4" [label="P
-(4, 2)"];
-"168e655a-50e0-4667-80a5-ed4d50169fd4" -- "8e029f9c-312c-4dba-87c8-01075b2d0d67"
-"8e029f9c-312c-4dba-87c8-01075b2d0d67" [label="&
+"9595e86d-643d-462d-b89a-e7bf5599947c" [label="E
+(4, 1)", color=green];
+"9595e86d-643d-462d-b89a-e7bf5599947c" -- "49aaa562-8e2a-4ef8-ae53-acaffb3c5660"
+"9595e86d-643d-462d-b89a-e7bf5599947c" -- "80231d2c-3852-46d7-aa15-b4abfefc8f24"
+"9595e86d-643d-462d-b89a-e7bf5599947c" -- "bfb69162-6884-4a48-b941-9f8720a9d849"
+"49aaa562-8e2a-4ef8-ae53-acaffb3c5660" [label="b
 (4, 0)"];
 
 
-"04773803-5e79-45b9-80be-d6de5b39d5af" [label="Q
-(4, 1)", color=green];
-"04773803-5e79-45b9-80be-d6de5b39d5af" -- "6b9da962-d698-4d47-94b5-29ad7f98202c"
-"6b9da962-d698-4d47-94b5-29ad7f98202c" [label="&
-(4, 0)"];
+"80231d2c-3852-46d7-aa15-b4abfefc8f24" [label="E
+(5, 1)"];
+"80231d2c-3852-46d7-aa15-b4abfefc8f24" -- "04b123dd-29b3-46c4-923d-58bb3d3da685"
+"04b123dd-29b3-46c4-923d-58bb3d3da685" [label="a
+(5, 0)"];
 
 
-"e5f3d76e-1bec-41d7-8590-b69e59182527" [label="$
-(4, 1)", color=green];
+"bfb69162-6884-4a48-b941-9f8720a9d849" [label="E
+(6, 2)", color=green];
+"bfb69162-6884-4a48-b941-9f8720a9d849" -- "f4d484c3-9295-44fd-8110-32048e31121d"
+"f4d484c3-9295-44fd-8110-32048e31121d" [label="a
+(6, 0)", color=green];
+
+
+"23f86e60-aaf0-48fc-819a-47f6b61a532b" [label="E
+(7, 2)", color=green];
+"23f86e60-aaf0-48fc-819a-47f6b61a532b" -- "be903f21-0b92-404a-8c0e-e801b2f74f26"
+"be903f21-0b92-404a-8c0e-e801b2f74f26" [label="a
+(7, 0)", color=green];
+
+
+"5d0cba6b-8e96-4073-8b98-0bfd437bb23c" [label="E
+(8, 2)", color=green];
+"5d0cba6b-8e96-4073-8b98-0bfd437bb23c" -- "68416e6e-e97a-470a-937a-6e72e34d11f7"
+"68416e6e-e97a-470a-937a-6e72e34d11f7" [label="a
+(8, 0)", color=green];
+
+
+"d8b9439e-2335-4ee0-97af-f56612b089ed" [label="E
+(9, 2)", color=green];
+"d8b9439e-2335-4ee0-97af-f56612b089ed" -- "54ac4307-21c8-40ee-a2eb-652fd8c202d2"
+"54ac4307-21c8-40ee-a2eb-652fd8c202d2" [label="a
+(9, 0)", color=green];
+
+
+"0653954a-ba13-4e29-af58-1e59ef0ad837" [label="$
+(10, 1)", color=green];
 
 
 }

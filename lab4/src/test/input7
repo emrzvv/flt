@@ -1,0 +1,7 @@
+bbbaaaa
+bbbbaaaaa
+
+S' -> S $
+S -> E
+E -> b E E
+E -> a

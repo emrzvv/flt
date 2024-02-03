@@ -235,6 +235,7 @@ class LLParser(start: String,
       } else {
         val updatedW1 = w1.slice(amountToParse, w1.size)
         val NmRootOpt = T1.getNodeByPosition(NmRootPosition)
+//        println(s"NMROOTPOSITION: ${NmRootPosition}")
         NmRootOpt match {
           case None =>
             throw new Exception("w1 is not in the language")
@@ -255,12 +256,19 @@ class LLParser(start: String,
               NmCopy.reducePosition(positionToReduce)
 
               val updatedNmNode = NmNode.flatMap(_.rightSibling())
-
+//              Node.printTree(NmNode.get.parent.get)
               val (updatedNmPos, updatedRootPos, updatedAmountToParse) = updatedNmNode match {
-                case Some(rs) => (NmPosition + amountToParse, NmRootPosition + amountToParse, rs.position - prevNmPosition)
-                case None => (NmPosition + amountToParse, NmRootPosition + amountToParse, w1.size)
+                case Some(rs) =>
+//                  println(s"RIGHT SIBLING TO ${(NmNode.get.value.name, NmNode.get.position)} is ${(rs.value.name, rs.position)}")
+//                  println("YES RIGHT SIBLING")
+                  val tempAmountToParse = rs.position - prevNmPosition
+                  (NmPosition + tempAmountToParse, NmRootPosition + tempAmountToParse, tempAmountToParse)
+                case None =>
+//                  println("NO RIGHT SIBLING")
+                  val tempAmountToParse = w1.size
+                  (NmPosition + tempAmountToParse, NmRootPosition + tempAmountToParse, tempAmountToParse)
               }
-
+//              println(s"UPDATED NMROOTPOSITION: ${updatedRootPos}")
               loop(
                 NmNode = updatedNmNode,
                 NmPosition = updatedNmPos,
@@ -312,6 +320,9 @@ class LLParser(start: String,
 
     w1 = w1.slice(prefixLength, w1.length)
     w1 += EndMarker.name
+
+//    println("DEBUG")
+//    println(NmPosition, NmRootPosition, amountToParse)
     loop(
       NmNode = NmNode,
       NmPosition = NmPosition,
